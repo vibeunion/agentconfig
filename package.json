@@ -1,0 +1,20 @@
+{
+  "name": "agentconfig",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AgentConfig Bundle — a portable, encrypted format for sharing AI agent configurations across desktop clients.",
+  "license": "MIT",
+  "author": "Zhuah Dong",
+  "workspaces": ["packages/*"],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "test": "vitest run",
+    "cli": "node packages/cli/dist/index.js"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "tsup": "^8.3.0"
+  },
+  "engines": { "node": ">=18.0.0" }
+}

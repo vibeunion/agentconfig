@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AgentConfig Bundle — Online Generator & Parser</title>
+<style>
+  :root {
+    --bg: #0d1117;
+    --panel: #161b22;
+    --border: #30363d;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --accent: #58a6ff;
+    --danger: #f85149;
+    --ok: #3fb950;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+  }
+  header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 { margin: 0 0 4px; font-size: 20px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 32px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+  }
+  .panel h2 { margin: 0 0 12px; font-size: 15px; }
+  textarea {
+    width: 100%;
+    min-height: 180px;
+    background: #010409;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-family: 'SF Mono', Menlo, monospace;
+    font-size: 12px;
+    resize: vertical;
+  }
+  input[type=text], input[type=password] {
+    width: 100%;
+    background: #010409;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+  }
+  label { display: block; margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
+  .row { display: flex; gap: 8px; align-items: center; }
+  select {
+    background: #010409; color: var(--text); border: 1px solid var(--border);
+    border-radius: 6px; padding: 6px; font-size: 13px;
+  }
+  button {
+    background: var(--accent); color: #000; border: none; border-radius: 6px;
+    padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+  }
+  button:hover { opacity: 0.9; }
+  button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
+  .msg { font-size: 12px; margin: 8px 0; padding: 8px; border-radius: 4px; }
+  .msg.ok { background: rgba(63,185,80,0.1); color: var(--ok); }
+  .msg.err { background: rgba(248,81,73,0.1); color: var(--danger); }
+  pre {
+    background: #010409; border: 1px solid var(--border); border-radius: 6px;
+    padding: 10px; font-size: 11px; overflow: auto; max-height: 240px; margin: 8px 0;
+  }
+  .meta { font-size: 12px; color: var(--muted); margin: 6px 0; }
+  a { color: var(--accent); }
+  footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+</style>
+</head>
+<body>
+<header>
+  <h1>AgentConfig Bundle</h1>
+  <p>Generate and parse <code>agentconfig://</code> bundles in your browser. Nothing leaves this page.</p>
+</header>
+<main>
+  <section class="panel">
+    <h2>Encode — Config JSON to Bundle</h2>
+    <label>Config JSON (must contain <code>pub</code>)</label>
+    <textarea id="encInput" placeholder='{"pub":{"mcp":[],"models":[]},"secret":{"endpoints":{}}}'>{ "pub": { "mcp": [ { "name": "demo", "enabled": true, "transport": "stdio", "command": "npx", "args": ["-y","@modelcontextprotocol/server-github"], "envKeys": ["GITHUB_PERSONAL_ACCESS_TOKEN"] } ], "models": [ { "provider": "provider-a", "id": "model-x", "alias": "x" } ], "skills": [], "prompts": [] }, "secret": { "endpoints": { "provider-a": "https://api.example.com" } } }</textarea>
+    <div class="row">
+      <div style="flex:1">
+        <label>Password (optional)</label>
+        <input type="password" id="encPassword" placeholder="leave empty for plain" />
+      </div>
+      <div>
+        <label>Trust</label>
+        <select id="encTrust">
+          <option value="shared">shared</option>
+          <option value="self">self</option>
+          <option value="managed">managed</option>
+        </select>
+      </div>
+    </div>
+    <label>Label</label>
+    <input type="text" id="encLabel" placeholder="My setup" />
+    <div class="row" style="margin-top:12px">
+      <button id="encBtnUrl">Encode as URL</button>
+      <button id="encBtnFile" class="ghost">Encode as .acfg</button>
+    </div>
+    <div id="encMsg"></div>
+    <pre id="encOut"></pre>
+  </section>
+
+  <section class="panel">
+    <h2>Decode — Bundle to JSON</h2>
+    <label>Paste <code>agentconfig://</code> URL or .acfg JSON</label>
+    <textarea id="decInput" placeholder="agentconfig://import?v=1&bundle=..."></textarea>
+    <div class="row" style="margin-top:8px">
+      <div style="flex:1">
+        <label>Password (if encrypted)</label>
+        <input type="password" id="decPassword" placeholder="password" />
+      </div>
+      <button id="decBtn" style="align-self:flex-end">Decode</button>
+    </div>
+    <div id="decMsg"></div>
+    <div id="decMeta" class="meta"></div>
+    <pre id="decOut"></pre>
+  </section>
+</main>
+<footer>
+  AgentConfig Bundle Spec v1.1-draft &middot; MIT License &middot; <a href="https://github.com/zuohuadong/agentconfig">GitHub</a>
+</footer>
+
+<script>
+const SCHEME = 'agentconfig';
+const SCHEMA_ID = 'agentconfig-bundle';
+const VERSION = 1;
+const PBKDF2_ITER = 100000;
+
+const b64 = (b) => btoa(String.fromCharCode(...new Uint8Array(b)));
+const b64url = (b) => b64(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const fromB64 = (s) => { const bin = atob(s); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return u; };
+const fromB64Url = (s) => { let p=s.replace(/-/g,'+').replace(/_/g,'/'); const m=p.length%4; if(m)p+='='.repeat(4-m); return fromB64(p); };
+
+const deriveKey = async (pw, salt) => {
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:PBKDF2_ITER,hash:'SHA-256'}, km, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+};
+const encrypt = async (pt, pw) => {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const key = await deriveKey(pw, salt);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, new TextEncoder().encode(pt)));
+  return { salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+};
+const decrypt = async (saltB, ivB, ctB, pw) => {
+  const salt = fromB64(saltB), iv = fromB64(ivB), ct = fromB64(ctB);
+  const key = await deriveKey(pw, salt);
+  const pt = await crypto.subtle.decrypt({name:'AES-GCM',iv}, key, ct);
+  return new TextDecoder().decode(pt);
+};
+
+const buildBundle = async (input) => {
+  const secret = input.secret || { endpoints:{}, customPrompts:{}, providerHints:[], secrets:{} };
+  const secretJson = JSON.stringify(secret);
+  const trust = input.trust || 'shared';
+  const hasSecrets = Object.keys(secret.secrets || {}).length > 0;
+  if (trust !== 'shared' && hasSecrets && !input.password) {
+    throw new Error('trust="'+trust+'" with secrets requires a password');
+  }
+  let payload;
+  if (input.password) {
+    const r = await encrypt(secretJson, input.password);
+    payload = { alg:'PBKDF2-SHA256-AES-256-GCM', iterations:PBKDF2_ITER, salt:r.salt, iv:r.iv, ct:r.ct };
+  } else {
+    payload = { alg:'none', ct: b64(new TextEncoder().encode(secretJson)) };
+  }
+  const pub = input.pub || {};
+  const caps = [];
+  if (pub.mcp?.length) caps.push('mcp');
+  if (pub.models?.length) caps.push('models');
+  if (pub.skills?.length) caps.push('skills');
+  if (pub.prompts?.length) caps.push('prompts');
+  if (pub.agents?.length) caps.push('agents');
+  if (pub.resources?.length) caps.push('resources');
+  return { schema:SCHEMA_ID, v:VERSION, created:Date.now(), label:input.label, src:'web', trust, capabilities:caps, payload, pub };
+};
+
+const toDeepLink = (bundle) => {
+  const json = JSON.stringify(bundle);
+  const enc = b64url(new TextEncoder().encode(json));
+  if (enc.length > 20000) throw new Error('Bundle too large for URL ('+enc.length+' chars). Use .acfg file.');
+  return SCHEME+'://import?v='+bundle.v+'&bundle='+enc;
+};
+
+const fromDeepLink = (url) => {
+  const p = new URL(url);
+  if (p.hostname !== 'import') throw new Error('host must be import');
+  const enc = p.searchParams.get('bundle');
+  if (!enc) throw new Error('missing bundle param');
+  return JSON.parse(new TextDecoder().decode(fromB64Url(enc)));
+};
+
+const showMsg = (el, msg, type) => { el.innerHTML = '<div class="msg '+type+'">'+msg+'</div>'; };
+
+document.getElementById('encBtnUrl').onclick = async () => {
+  const msg = document.getElementById('encMsg');
+  try {
+    const input = JSON.parse(document.getElementById('encInput').value);
+    input.password = document.getElementById('encPassword').value || undefined;
+    input.trust = document.getElementById('encTrust').value;
+    input.label = document.getElementById('encLabel').value || undefined;
+    const bundle = await buildBundle(input);
+    const url = toDeepLink(bundle);
+    document.getElementById('encOut').textContent = url;
+    showMsg(msg, 'Encoded URL ('+url.length+' chars, trust='+bundle.trust+')', 'ok');
+  } catch (e) { showMsg(msg, e.message, 'err'); document.getElementById('encOut').textContent=''; }
+};
+
+document.getElementById('encBtnFile').onclick = async () => {
+  const msg = document.getElementById('encMsg');
+  try {
+    const input = JSON.parse(document.getElementById('encInput').value);
+    input.password = document.getElementById('encPassword').value || undefined;
+    input.trust = document.getElementById('encTrust').value;
+    input.label = document.getElementById('encLabel').value || undefined;
+    const bundle = await buildBundle(input);
+    document.getElementById('encOut').textContent = JSON.stringify(bundle, null, 2);
+    showMsg(msg, 'Encoded .acfg JSON (trust='+bundle.trust+')', 'ok');
+  } catch (e) { showMsg(msg, e.message, 'err'); document.getElementById('encOut').textContent=''; }
+};
+
+document.getElementById('decBtn').onclick = async () => {
+  const msg = document.getElementById('decMsg');
+  const meta = document.getElementById('decMeta');
+  const out = document.getElementById('decOut');
+  try {
+    const raw = document.getElementById('decInput').value.trim();
+    let bundle;
+    if (raw.startsWith(SCHEME+'://')) {
+      bundle = fromDeepLink(raw);
+    } else {
+      bundle = JSON.parse(raw);
+    }
+    if (bundle.schema !== SCHEMA_ID) throw new Error('not an agentconfig-bundle');
+    meta.innerHTML = 'trust: <b>'+bundle.trust+'</b> &middot; caps: '+(bundle.capabilities||[]).join(', ')+' &middot; encrypted: '+(bundle.payload.alg!=='none');
+    const pw = document.getElementById('decPassword').value;
+    const out2 = { ...bundle };
+    if (bundle.payload.alg !== 'none') {
+      if (!pw) { showMsg(msg, 'Encrypted — enter password to reveal secret', 'err'); }
+      else {
+        try {
+          const secret = JSON.parse(await decrypt(bundle.payload.salt, bundle.payload.iv, bundle.payload.ct, pw));
+          out2.__secret = secret;
+          showMsg(msg, 'Decrypted OK', 'ok');
+        } catch (e) { showMsg(msg, 'Decrypt failed: '+e.message, 'err'); }
+      }
+    } else {
+      const secret = JSON.parse(new TextDecoder().decode(fromB64(bundle.payload.ct)));
+      out2.__secret = secret;
+      showMsg(msg, 'Plain bundle — no password needed', 'ok');
+    }
+    out.textContent = JSON.stringify(out2, null, 2);
+  } catch (e) { showMsg(msg, e.message, 'err'); meta.innerHTML=''; out.textContent=''; }
+};
+</script>
+</body>
+</html>

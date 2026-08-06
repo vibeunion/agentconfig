@@ -1,0 +1,21 @@
+{
+  "name": "@agentconfig/cli",
+  "version": "0.1.0",
+  "description": "AgentConfig Bundle CLI: validate / encode / decode bundles.",
+  "type": "module",
+  "bin": {
+    "agentconfig": "./dist/index.js"
+  },
+  "files": ["dist"],
+  "scripts": {
+    "build": "tsup src/index.ts --format esm",
+    "dev": "tsup src/index.ts --format esm --watch"
+  },
+  "dependencies": {
+    "@agentconfig/core": "^0.1.0"
+  },
+  "devDependencies": {
+    "tsup": "^8.3.0",
+    "typescript": "^5.7.0"
+  }
+}

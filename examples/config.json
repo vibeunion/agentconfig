@@ -1,0 +1,51 @@
+{
+  "label": "Example setup",
+  "trust": "shared",
+  "pub": {
+    "mcp": [
+      {
+        "name": "github",
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-github"],
+        "envKeys": ["GITHUB_PERSONAL_ACCESS_TOKEN"],
+        "description": "GitHub repo / issue / PR tools"
+      },
+      {
+        "name": "filesystem",
+        "enabled": true,
+        "transport": "stdio",
+        "command": "npx",
+        "args": ["-y", "@modelcontextprotocol/server-filesystem", "/Users/me/workspace"],
+        "envKeys": []
+      }
+    ],
+    "models": [
+      { "provider": "provider-a", "id": "model-x", "alias": "x", "maxTokens": 200000 },
+      { "provider": "provider-b", "id": "model-y", "alias": "y" }
+    ],
+    "skills": [
+      { "id": "docx", "enabled": true, "order": 1 },
+      { "id": "pdf", "enabled": true, "order": 2 }
+    ],
+    "prompts": [
+      { "id": "code-review", "title": "Code Review" }
+    ],
+    "agents": [],
+    "resources": []
+  },
+  "secret": {
+    "endpoints": {
+      "provider-a": "https://api.example.com",
+      "provider-b": "https://api.example.org"
+    },
+    "customPrompts": {
+      "code-review": "Review this code for bugs, security issues, and style.",
+      "default": "You are a senior engineer. Be concise."
+    },
+    "providerHints": [
+      { "provider": "provider-b", "baseUrl": "https://api.example.org/v1" }
+    ]
+  }
+}

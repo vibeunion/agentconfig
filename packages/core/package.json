@@ -12,7 +12,19 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "src"],
+  "files": ["dist", "src", "README.md"],
+  "keywords": ["agentconfig", "mcp", "ai", "config", "bundle", "portable", "encrypted"],
+  "author": "Zhuah Dong",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zuohuadong/agentconfig.git",
+    "directory": "packages/core"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": { "node": ">=18.0.0" },
   "scripts": {
     "build": "tsup src/index.ts --format esm --dts",
     "test": "vitest run"

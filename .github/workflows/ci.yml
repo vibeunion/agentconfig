@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm install
+      - run: npm run build
+      - name: Smoke test CLI
+        run: |
+          # encode shared config to URL, then validate and decode
+          node packages/cli/dist/index.js encode examples/config.json --as url > /tmp/url.txt
+          node packages/cli/dist/index.js validate "$(cat /tmp/url.txt)"
+          node packages/cli/dist/index.js decode "$(cat /tmp/url.txt)" > /tmp/decoded.json
+          grep -q "provider-a" /tmp/decoded.json && echo "shared decode OK"
+          # encode self config (with secrets) to file, then decode with password
+          node packages/cli/dist/index.js encode examples/config-self.json --password hunter2 --trust self --as file --out /tmp/test.acfg
+          node packages/cli/dist/index.js validate /tmp/test.acfg
+          node packages/cli/dist/index.js decode /tmp/test.acfg --password hunter2 --reveal > /tmp/decoded2.json
+          grep -q "sk-demo-key-1234" /tmp/decoded2.json && echo "self secret revealed OK"
+          # security rule: self + secrets + no password must fail
+          if node packages/cli/dist/index.js encode examples/config-self.json --trust self --as url 2>/dev/null; then
+            echo "ERROR: security rule not enforced"; exit 1
+          else
+            echo "security rule enforced OK"
+          fi

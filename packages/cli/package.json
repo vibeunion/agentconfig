@@ -7,6 +7,18 @@
     "agentconfig": "./dist/index.js"
   },
   "files": ["dist"],
+  "keywords": ["agentconfig", "mcp", "ai", "config", "cli", "bundle"],
+  "author": "Zhuah Dong",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zuohuadong/agentconfig.git",
+    "directory": "packages/cli"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": { "node": ">=18.0.0" },
   "scripts": {
     "build": "tsup src/index.ts --format esm",
     "dev": "tsup src/index.ts --format esm --watch"

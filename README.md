@@ -28,7 +28,7 @@ client can import or export with a click.
 ## Repository layout
 
 ```
-spec/                 # human-readable specification (SPEC.md)
+spec/                 # specification (SPEC.md) + integration guide (INTEGRATION.md)
 packages/core/        # schema + codec (TypeScript, framework-agnostic)
 packages/cli/         # `agentconfig` CLI: validate / encode / decode
 site/                 # online generator/parser (pure browser, Web Crypto)
@@ -83,9 +83,10 @@ const bundle = await buildBundle({
 | `self` | allowed | required if secrets | Personal backup / cross-device |
 | `managed` | allowed | required if secrets | Enterprise IT push |
 
-## Specification
+## Specification & integration
 
-See [spec/SPEC.md](./spec/SPEC.md).
+- [spec/SPEC.md](./spec/SPEC.md) — the format specification
+- [spec/INTEGRATION.md](./spec/INTEGRATION.md) — multi-language integration guide (TS/Python/Go/Rust) with test vectors
 
 ## License
 

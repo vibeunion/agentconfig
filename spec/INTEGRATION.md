@@ -257,7 +257,133 @@ appended — matches ACB's `ct` format directly.
 
 ---
 
-## 6. Test vectors
+## 6. Electron (desktop app)
+
+Electron desktop clients register `agentconfig://` as a custom protocol to
+handle both config imports (§8.1) and OIDC auth callbacks (§8.3).
+
+### 6.1 Register the protocol
+
+```ts
+import { app } from 'electron';
+
+// Register in app.whenReady() or before second-instance handling
+if (!app.isPackaged) {
+  app.setAsDefaultProtocolClient('agentconfig', process.execPath, [
+    path.resolve(process.argv[1]),
+  ]);
+} else {
+  app.setAsDefaultProtocolClient('agentconfig');
+}
+```
+
+Also declare it in `electron-builder.json` so installers register the scheme:
+
+```json
+{
+  "protocols": [
+    { "name": "AgentConfig", "schemes": ["agentconfig"], "role": "Viewer" }
+  ]
+}
+```
+
+### 6.2 Route deep links: import vs auth/callback
+
+```ts
+const handleDeepLink = (url: string) => {
+  const u = new URL(url);
+  if (u.host === 'import') {
+    // §8.1 — config bundle import
+    handleAgentConfigImport(url);
+  } else if (u.host === 'auth' && u.pathname === '/callback') {
+    // §8.3 — OIDC authorization code callback
+    handleAuthCallback(url);
+  }
+};
+
+// macOS: app.on('open-url', (_, url) => handleDeepLink(url))
+// Windows: second-instance event argv
+app.on('open-url', (_, url) => handleDeepLink(url));
+app.on('second-instance', (_, argv) => {
+  const url = argv.find(a => a.startsWith('agentconfig://'));
+  if (url) handleDeepLink(url);
+});
+```
+
+### 6.3 Import a bundle
+
+```ts
+import { extractBundleFromDeepLink, revealSecret } from '@agentconfig/core';
+
+async function handleAgentConfigImport(url: string) {
+  const bundle = extractBundleFromDeepLink(url);
+  if (bundle.schema !== 'agentconfig-bundle') return;
+
+  // Preview pub to user (§9 import flow step 5)
+  mainWindow.webContents.send('agentconfig:preview', {
+    trust: bundle.trust,
+    pub: bundle.pub,
+    needsPassword: bundle.payload.alg !== 'none',
+    hint: bundle.hint,
+  });
+}
+
+// After user enters password and confirms:
+async function confirmImport(bundle, password) {
+  const secret = await revealSecret(bundle, password);
+  // Write MCP servers, models, skills, secrets into local config
+}
+```
+
+### 6.4 OIDC auth callback
+
+```ts
+function handleAuthCallback(url: string) {
+  const u = new URL(url);
+  const code = u.searchParams.get('code');
+  const state = u.searchParams.get('state');
+  if (!code) return;
+
+  // Verify state matches the one sent in the auth request (CSRF)
+  if (!verifyState(state)) {
+    console.error('state mismatch');
+    return;
+  }
+
+  // Exchange code for tokens via your IdP's token endpoint
+  const tokens = await exchangeCodeForTokens(code, {
+    redirectUri: 'agentconfig://auth/callback',
+    // clientId, clientSecret from your OIDC client config
+  });
+
+  // Store tokens in secrets[<provider>].oauth (§6.2, §6.2.1)
+  await storeOidcCredential({
+    type: 'oidc',
+    issuer: 'https://auth.example.com',
+    clientId: 'your-client-id',
+    redirectUri: 'agentconfig://auth/callback',
+    accessToken: tokens.access_token,
+    refreshToken: tokens.refresh_token,
+    idToken: tokens.id_token,
+    expired: tokens.expires_at,
+    scope: tokens.scope,
+  });
+}
+```
+
+### 6.5 Install @agentconfig/core
+
+```bash
+npm install @agentconfig/core
+```
+
+The package provides `buildBundle`, `parseBundle`, `bundleToDeepLink`,
+`extractBundleFromDeepLink`, `revealSecret`, `encryptWithPassword`, and
+`decryptWithPassword` — all framework-agnostic.
+
+---
+
+## 7. Test vectors
 
 These fixed vectors let you verify your implementation produces byte-identical
 output. The salt, iv, and password are fixed (not random), so every language
@@ -299,7 +425,7 @@ your crypto is byte-compatible with the reference implementation.
 
 ---
 
-## 7. Minimal importer checklist
+## 8. Minimal importer checklist
 
 A compliant importer MUST:
 
@@ -329,7 +455,7 @@ A compliant exporter MUST:
 
 ---
 
-## 8. Deep link registration
+## 9. Deep link registration
 
 Register `agentconfig://` with the OS so clicking a link opens your client:
 
@@ -356,7 +482,7 @@ scheme but emit `agentconfig://` first.
 
 ---
 
-## 9. FAQ
+## 10. FAQ
 
 **Do I need to support all capabilities?**
 No. Ignore any capability you don't understand. A minimal MCP-only client can

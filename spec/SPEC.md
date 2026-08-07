@@ -287,6 +287,25 @@ token endpoint, scope, and refresh flow. Importers dispatch by `type` to their
 own refresh implementation. The spec only governs "carrying the credential",
 not "how to refresh it".
 
+### 6.2.1 OIDC standard fields
+
+When `type` is `"oidc"` (or a provider-specific OIDC variant such as
+`"supauth"`, `"google"`, `"azure"`), clients SHOULD populate these standard
+fields alongside the common ones in §6.2:
+
+| Field | Required | Description |
+|---|---|---|
+| `issuer` | no | OIDC issuer URL (e.g. `https://auth.example.com`). Used to reconstruct the OIDC client config. |
+| `clientId` | no | OAuth2 `client_id` registered with the IdP. |
+| `redirectUri` | no | The `agentconfig://auth/callback` URI used in the authorization code flow (see §8.3). |
+
+These let an importer rebuild the OIDC client configuration without re-prompting
+the user. `accessToken` / `refreshToken` / `idToken` / `expired` (from §6.2)
+carry the actual tokens obtained via the §8.3 callback flow.
+
+Providers using non-OIDC flows (e.g. device code, refresh-only) MAY omit these
+fields and rely on `type` + `extra` for dispatch.
+
 ---
 ## 7. Trust Modes
 
@@ -363,6 +382,28 @@ agentconfig://import?v=1&bundle=<base64url(JSON envelope)>
 - MIME: `application/x-agentconfig+json`
 - Content: the raw envelope JSON (pretty or minified).
 - Clients register a file association so double-clicking imports.
+
+### 8.3 Auth Callback
+
+```
+agentconfig://auth/callback?code=<authorization_code>&state=<state>
+```
+
+- Used by OAuth2/OIDC authorization code flow as the `redirect_uri`. The OS
+  hands the callback to the desktop app registered as the `agentconfig://`
+  handler.
+- `code` is the authorization code; `state` is the CSRF token the client sent
+  with the auth request. Clients MUST verify `state` matches.
+- This route carries NO bundle — it only relays auth response parameters.
+  Clients route `host === "auth"` to their OIDC handler, separate from the
+  `host === "import"` bundle handler (§8.1).
+- Auth servers (IdPs) add `agentconfig://auth/callback` to their allowed
+  `redirect_uri` whitelist, same as any custom scheme.
+- If `agentconfig://` is already claimed by another app, clients MAY fall back
+  to a private scheme for auth only, but SHOULD emit `agentconfig://` first.
+- Tokens obtained via this flow are stored in `secrets[<provider>].oauth`
+  (§6.2) with `type: "oidc"` (or a provider-specific variant) and the standard
+  fields from §6.2.1.
 
 ---
 
@@ -463,3 +504,4 @@ A companion CLI (`agentconfig validate|encode|decode`) is provided at
 | 2026-08-06 | 1.0-draft | Initial public draft. |
 | 2026-08-07 | 1.1-draft | Renamed format to AgentConfig Bundle. Scheme `agentconfig://`, file extension `.acfg`. Added `trust` modes (`self`/`shared`/`managed`) and `secrets` in the Secret Section. Added producer/importer enforcement rules. |
 | 2026-08-07 | 1.2-draft | Added `oauth` credential in `secrets[<provider>]` (§6.2) for OAuth/OIDC providers (codex/antigravity/kimi/claude). Free-form `type` + common fields + `extra` escape hatch. Refresh protocols out of scope. |
+| 2026-08-07 | 1.3-draft | Added §8.3 `agentconfig://auth/callback` route for OIDC flows. Added §6.2.1 OIDC standard fields (issuer/clientId/redirectUri). |

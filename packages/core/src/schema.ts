@@ -89,10 +89,23 @@ export const BundlePublicSchema = z
   })
   .default({});
 
+export const OAuthCredentialSchema = z.object({
+  type: z.string().min(1).max(32),
+  accessToken: z.string().optional(),
+  refreshToken: z.string().optional(),
+  idToken: z.string().optional(),
+  expired: z.string().optional(),
+  accountId: z.string().optional(),
+  email: z.string().optional(),
+  scope: z.string().optional(),
+  extra: z.record(z.string(), z.unknown()).default({}),
+});
+
 const ProviderSecretSchema = z.object({
   apiKey: z.string().optional(),
   env: z.record(z.string(), z.string()).default({}),
   headers: z.record(z.string(), z.string()).default({}),
+  oauth: OAuthCredentialSchema.optional(),
 });
 
 export const BundleSecretSchema = z
@@ -151,6 +164,7 @@ export type SkillEntryPublic = z.infer<typeof SkillEntryPublicSchema>;
 export type PromptEntryPublic = z.infer<typeof PromptEntryPublicSchema>;
 export type AgentEntryPublic = z.infer<typeof AgentEntryPublicSchema>;
 export type ResourceEntryPublic = z.infer<typeof ResourceEntryPublicSchema>;
+export type OAuthCredential = z.infer<typeof OAuthCredentialSchema>;
 export type ProviderSecret = z.infer<typeof ProviderSecretSchema>;
 export type BundlePublic = z.infer<typeof BundlePublicSchema>;
 export type BundleSecret = z.infer<typeof BundleSecretSchema>;

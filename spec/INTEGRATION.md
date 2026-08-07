@@ -115,6 +115,29 @@ For **export**, build the envelope dict and encrypt with `AESGCM(key).encrypt(iv
 
 ---
 
+### 3.1 Handling OAuth credentials
+
+When a provider uses OAuth (codex, antigravity, kimi, claude, …), its
+credential lives in `secret.secrets[<provider>].oauth` instead of `apiKey`.
+The `type` field tells your importer which refresh flow to use; `extra`
+carries vendor-specific fields you should store opaquely.
+
+```python
+# --- OAuth credential import ---
+secret = reveal_secret(bundle, password)
+provider_secrets = secret.get('secrets', {})
+if 'codex' in provider_secrets and 'oauth' in provider_secrets['codex']:
+    oauth = provider_secrets['codex']['oauth']
+    print(oauth['type'])           # 'codex'
+    print(oauth['accessToken'])    # JWT
+    print(oauth['expired'])        # ISO 8601 — refresh if past
+    print(oauth.get('extra', {}))  # {'codex_fast_mode': False, ...}
+    # dispatch refresh by oauth['type'] to your own refresh implementation
+```
+
+The spec does **not** define the refresh protocol — each provider has its own
+token endpoint, scope, and flow. Your client dispatches by `type`.
+
 ## 4. Go (pure stdlib, ~50 lines)
 
 Go's `crypto/aes`, `crypto/cipher` (GCM), `crypto/sha256`, `golang.org/x/crypto/pbkdf2`

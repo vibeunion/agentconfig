@@ -238,12 +238,56 @@ URIs are references only; content is not embedded.
 | `apiKey` | Provider API key. |
 | `env` | MCP server env values, keyed by env var name. |
 | `headers` | Extra HTTP headers for the provider endpoint. |
+| `oauth` | OAuth/OIDC credential object. See §6.2. |
 
 `secrets` is keyed by the same `provider` string used in `pub.models` and by
 MCP server `name` (so a `github` MCP server's env lives under `secrets.github.env`).
 
 ---
 
+### 6.2 `secrets[<provider>].oauth`
+
+OAuth/OIDC credential. Used when a provider is accessed via OAuth login
+(codex, antigravity, kimi, claude, etc.) rather than a static API key.
+Designed for loose compatibility: free-form `type` + common fields lifted
+out + `extra` escape hatch for vendor-specific fields.
+
+```json
+{
+  "type": "codex",
+  "accessToken": "<jwt>",
+  "refreshToken": "<opaque>",
+  "idToken": "<jwt>",
+  "expired": "2026-12-31T23:59:59+08:00",
+  "accountId": "synthetic-account-id",
+  "email": "synthetic@example.com",
+  "scope": "openid email profile",
+  "extra": {
+    "codex_fast_mode": false,
+    "disabled": false,
+    "last_refresh": "2026-08-07T10:00:00+08:00"
+  }
+}
+```
+
+| Field | Required | Description |
+|---|---|---|
+| `type` | yes | Credential type identifier, free-form string. Importers dispatch refresh logic by this value. Known values: `codex`/`antigravity`/`kimi`/`claude` etc.; clients may use any value. |
+| `accessToken` | no | OAuth2 access token (usually a JWT). Common field, lifted out for generic handling. |
+| `refreshToken` | no | OAuth2 refresh token, used to obtain a new access token. |
+| `idToken` | no | OIDC id token, contains user identity claims. |
+| `expired` | no | Access token expiry, ISO 8601 string. Importers use this to decide whether to refresh. |
+| `accountId` | no | Account identifier. |
+| `email` | no | User email, for display (non-sensitive). |
+| `scope` | no | OAuth scope string. |
+| `extra` | no | Vendor-specific fields escape hatch. The spec does not define these; clients store them opaquely. |
+
+**Refresh protocols are out of scope for this spec** — each provider has its own
+token endpoint, scope, and refresh flow. Importers dispatch by `type` to their
+own refresh implementation. The spec only governs "carrying the credential",
+not "how to refresh it".
+
+---
 ## 7. Trust Modes
 
 `trust` is the single field that tells the importer how to treat credentials.
@@ -418,3 +462,4 @@ A companion CLI (`agentconfig validate|encode|decode`) is provided at
 |---|---|---|
 | 2026-08-06 | 1.0-draft | Initial public draft. |
 | 2026-08-07 | 1.1-draft | Renamed format to AgentConfig Bundle. Scheme `agentconfig://`, file extension `.acfg`. Added `trust` modes (`self`/`shared`/`managed`) and `secrets` in the Secret Section. Added producer/importer enforcement rules. |
+| 2026-08-07 | 1.2-draft | Added `oauth` credential in `secrets[<provider>]` (§6.2) for OAuth/OIDC providers (codex/antigravity/kimi/claude). Free-form `type` + common fields + `extra` escape hatch. Refresh protocols out of scope. |

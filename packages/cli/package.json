@@ -12,7 +12,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/zuohuadong/agentconfig.git",
+    "url": "https://github.com/vibeunion/agentconfig.git",
     "directory": "packages/cli"
   },
   "publishConfig": {

@@ -38,7 +38,7 @@ examples/             # sample config.json files
 ## Quick start
 
 ```bash
-git clone https://github.com/zuohuadong/agentconfig.git
+git clone https://github.com/vibeunion/agentconfig.git
 cd agentconfig
 npm install
 npm run build

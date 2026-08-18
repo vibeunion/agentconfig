@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { readFileSync, writeFileSync } from 'node:fs';
+import { closeSync, fchmodSync, openSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import {
   AcbTrustMode,
@@ -83,9 +83,19 @@ const readConfigJson = (path: string): BundleInput => {
   return raw as BundleInput;
 };
 
+const writePrivateFile = (path: string, text: string): void => {
+  const fd = openSync(path, 'w', 0o600);
+  try {
+    if (process.platform !== 'win32') fchmodSync(fd, 0o600);
+    writeFileSync(fd, text, { encoding: 'utf8' });
+  } finally {
+    closeSync(fd);
+  }
+};
+
 const print = (text: string, outFile?: string): void => {
   if (outFile) {
-    writeFileSync(resolve(outFile), text, { encoding: 'utf8', mode: 0o600 });
+    writePrivateFile(resolve(outFile), text);
     console.error(`Written to ${outFile}`);
   } else {
     console.log(text);

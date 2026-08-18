@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="referrer" content="no-referrer" />
 <title>AgentConfig Bundle — Online Generator & Parser</title>
 <style>
   :root {
+    color-scheme: dark;
     --bg: #0d1117;
     --panel: #161b22;
     --border: #30363d;
@@ -23,21 +25,21 @@
     color: var(--text);
     line-height: 1.5;
   }
-  header {
-    padding: 24px 32px;
-    border-bottom: 1px solid var(--border);
-  }
+  header { padding: 24px 32px; border-bottom: 1px solid var(--border); }
   header h1 { margin: 0 0 4px; font-size: 20px; }
   header p { margin: 0; color: var(--muted); font-size: 13px; }
   main {
-    max-width: 1100px;
+    max-width: 1180px;
     margin: 0 auto;
     padding: 24px 32px;
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 20px;
   }
-  @media (max-width: 800px) { main { grid-template-columns: 1fr; } }
+  @media (max-width: 800px) {
+    main { grid-template-columns: 1fr; padding: 18px; }
+    header { padding: 20px 18px; }
+  }
   .panel {
     background: var(--panel);
     border: 1px solid var(--border);
@@ -45,9 +47,10 @@
     padding: 16px;
   }
   .panel h2 { margin: 0 0 12px; font-size: 15px; }
+  .help { margin: -4px 0 10px; color: var(--muted); font-size: 12px; }
   textarea {
     width: 100%;
-    min-height: 180px;
+    min-height: 260px;
     background: #010409;
     color: var(--text);
     border: 1px solid var(--border);
@@ -69,12 +72,22 @@
   label { display: block; margin: 10px 0 4px; font-size: 12px; color: var(--muted); }
   .row { display: flex; gap: 8px; align-items: center; }
   select {
-    background: #010409; color: var(--text); border: 1px solid var(--border);
-    border-radius: 6px; padding: 6px; font-size: 13px;
+    background: #010409;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px;
+    font-size: 13px;
   }
   button {
-    background: var(--accent); color: #000; border: none; border-radius: 6px;
-    padding: 8px 16px; font-size: 13px; font-weight: 600; cursor: pointer;
+    background: var(--accent);
+    color: #000;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
   }
   button:hover { opacity: 0.9; }
   button.ghost { background: transparent; color: var(--text); border: 1px solid var(--border); }
@@ -82,31 +95,85 @@
   .msg.ok { background: rgba(63,185,80,0.1); color: var(--ok); }
   .msg.err { background: rgba(248,81,73,0.1); color: var(--danger); }
   pre {
-    background: #010409; border: 1px solid var(--border); border-radius: 6px;
-    padding: 10px; font-size: 11px; overflow: auto; max-height: 240px; margin: 8px 0;
+    background: #010409;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 11px;
+    overflow: auto;
+    max-height: 300px;
+    margin: 8px 0;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
   }
   .meta { font-size: 12px; color: var(--muted); margin: 6px 0; }
+  code { overflow-wrap: anywhere; }
   a { color: var(--accent); }
-  footer { text-align: center; padding: 20px; color: var(--muted); font-size: 12px; border-top: 1px solid var(--border); }
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: var(--muted);
+    font-size: 12px;
+    border-top: 1px solid var(--border);
+  }
 </style>
 </head>
 <body>
 <header>
   <h1>AgentConfig Bundle</h1>
-  <p>Generate and parse <code>agentconfig://</code> bundles in your browser. Nothing leaves this page.</p>
+  <p>Generate and parse <code>agentconfig://</code> bundles locally in your browser. Nothing leaves this page.</p>
 </header>
 <main>
   <section class="panel">
     <h2>Encode — Config JSON to Bundle</h2>
-    <label>Config JSON (must contain <code>pub</code>)</label>
-    <textarea id="encInput" placeholder='{"pub":{"mcp":[],"models":[]},"secret":{"endpoints":{}}}'>{ "pub": { "mcp": [ { "name": "demo", "enabled": true, "transport": "stdio", "command": "npx", "args": ["-y","@modelcontextprotocol/server-github"], "envKeys": ["GITHUB_PERSONAL_ACCESS_TOKEN"] } ], "models": [ { "provider": "provider-a", "id": "model-x", "alias": "x" } ], "skills": [], "prompts": [] }, "secret": { "endpoints": { "provider-a": "https://api.example.com" } } }</textarea>
+    <p class="help">Models support <code>contextWindow</code>, <code>modelType</code>, <code>generationModes</code>, and JSON-safe <code>parameters</code>.</p>
+    <label for="encInput">Config JSON (must contain <code>pub</code>)</label>
+    <textarea id="encInput" spellcheck="false">{
+  "pub": {
+    "mcp": [],
+    "models": [
+      {
+        "provider": "provider-multimodal",
+        "id": "multimodal-model",
+        "alias": "vision",
+        "contextWindow": 200000,
+        "maxOutputTokens": 8192,
+        "modelType": "multimodal",
+        "parameters": { "reasoningEffort": "medium" }
+      },
+      {
+        "provider": "provider-image",
+        "id": "image-model",
+        "modelType": "image-generation",
+        "generationModes": ["text-to-image", "image-to-image"],
+        "parameters": { "size": "1024x1024", "quality": "high" }
+      },
+      {
+        "provider": "provider-video",
+        "id": "video-model",
+        "modelType": "video-generation",
+        "generationModes": ["text-to-video", "image-to-video"],
+        "parameters": { "durationSeconds": 8, "aspectRatio": "16:9" }
+      }
+    ],
+    "skills": [],
+    "prompts": [],
+    "agents": [],
+    "resources": []
+  },
+  "secret": {
+    "endpoints": {
+      "provider-multimodal": "https://api.example.com/v1"
+    }
+  }
+}</textarea>
     <div class="row">
       <div style="flex:1">
-        <label>Password (optional)</label>
-        <input type="password" id="encPassword" placeholder="leave empty for plain" />
+        <label for="encPassword">Password (optional)</label>
+        <input type="password" id="encPassword" autocomplete="new-password" placeholder="required for self/managed credentials" />
       </div>
       <div>
-        <label>Trust</label>
+        <label for="encTrust">Trust</label>
         <select id="encTrust">
           <option value="shared">shared</option>
           <option value="self">self</option>
@@ -114,168 +181,413 @@
         </select>
       </div>
     </div>
-    <label>Label</label>
-    <input type="text" id="encLabel" placeholder="My setup" />
+    <label for="encLabel">Label</label>
+    <input type="text" id="encLabel" maxlength="80" placeholder="My setup" />
     <div class="row" style="margin-top:12px">
-      <button id="encBtnUrl">Encode as URL</button>
-      <button id="encBtnFile" class="ghost">Encode as .acfg</button>
+      <button id="encBtnUrl" type="button">Encode as URL</button>
+      <button id="encBtnFile" type="button" class="ghost">Encode as .acfg</button>
     </div>
-    <div id="encMsg"></div>
+    <div id="encMsg" aria-live="polite"></div>
     <pre id="encOut"></pre>
   </section>
 
   <section class="panel">
     <h2>Decode — Bundle to JSON</h2>
-    <label>Paste <code>agentconfig://</code> URL or .acfg JSON</label>
-    <textarea id="decInput" placeholder="agentconfig://import?v=1&bundle=..."></textarea>
+    <label for="decInput">Paste <code>agentconfig://</code> URL or .acfg JSON</label>
+    <textarea id="decInput" spellcheck="false" placeholder="agentconfig://import?v=1&amp;bundle=..."></textarea>
     <div class="row" style="margin-top:8px">
       <div style="flex:1">
-        <label>Password (if encrypted)</label>
-        <input type="password" id="decPassword" placeholder="password" />
+        <label for="decPassword">Password (if encrypted)</label>
+        <input type="password" id="decPassword" autocomplete="current-password" placeholder="password" />
       </div>
-      <button id="decBtn" style="align-self:flex-end">Decode</button>
+      <button id="decBtn" type="button" style="align-self:flex-end">Decode</button>
     </div>
-    <div id="decMsg"></div>
+    <div id="decMsg" aria-live="polite"></div>
     <div id="decMeta" class="meta"></div>
     <pre id="decOut"></pre>
   </section>
 </main>
 <footer>
-  AgentConfig Bundle Spec v1.1-draft &middot; MIT License &middot; <a href="https://github.com/vibeunion/agentconfig">GitHub</a>
+  AgentConfig Bundle Spec v1.4-draft &middot; MIT License &middot; <a href="https://github.com/vibeunion/agentconfig" rel="noreferrer">GitHub</a>
 </footer>
 
 <script>
+'use strict';
 const SCHEME = 'agentconfig';
 const SCHEMA_ID = 'agentconfig-bundle';
 const VERSION = 1;
-const PBKDF2_ITER = 100000;
+const PBKDF2_MIN_ITERATIONS = 100000;
+const PBKDF2_MAX_ITERATIONS = 1000000;
+const DEEP_LINK_MAX_BYTES = 20000;
+const MAX_BUNDLE_BYTES = 1000000;
+const MODEL_TYPES = new Set(['text', 'multimodal', 'image-generation', 'video-generation']);
+const GENERATION_MODES = new Set(['text-to-image', 'image-to-image', 'text-to-video', 'image-to-video']);
+const IMAGE_MODES = new Set(['text-to-image', 'image-to-image']);
+const VIDEO_MODES = new Set(['text-to-video', 'image-to-video']);
+const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const BASE64URL_PATTERN = /^[A-Za-z0-9_-]*$/;
 
-const b64 = (b) => btoa(String.fromCharCode(...new Uint8Array(b)));
-const b64url = (b) => b64(b).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
-const fromB64 = (s) => { const bin = atob(s); const u = new Uint8Array(bin.length); for(let i=0;i<bin.length;i++)u[i]=bin.charCodeAt(i); return u; };
-const fromB64Url = (s) => { let p=s.replace(/-/g,'+').replace(/_/g,'/'); const m=p.length%4; if(m)p+='='.repeat(4-m); return fromB64(p); };
-
-const deriveKey = async (pw, salt) => {
-  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(pw), 'PBKDF2', false, ['deriveKey']);
-  return crypto.subtle.deriveKey({name:'PBKDF2',salt,iterations:PBKDF2_ITER,hash:'SHA-256'}, km, {name:'AES-GCM',length:256}, false, ['encrypt','decrypt']);
+const asBytes = (value) => value instanceof Uint8Array ? value : new Uint8Array(value);
+const bytesToBinary = (value) => {
+  const bytes = asBytes(value);
+  let output = '';
+  const chunkSize = 0x8000;
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    output += String.fromCharCode(...bytes.subarray(offset, offset + chunkSize));
+  }
+  return output;
 };
-const encrypt = async (pt, pw) => {
+const b64 = (value) => btoa(bytesToBinary(value));
+const b64url = (value) => b64(value).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+const fromB64 = (value, label = 'base64 value') => {
+  if (!BASE64_PATTERN.test(value)) throw new Error('Invalid ' + label);
+  const binary = atob(value);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+  if (b64(bytes) !== value) throw new Error('Non-canonical ' + label);
+  return bytes;
+};
+const fromB64Url = (value) => {
+  if (!BASE64URL_PATTERN.test(value) || value.length % 4 === 1) {
+    throw new Error('Invalid bundle base64url payload');
+  }
+  let padded = value.replace(/-/g, '+').replace(/_/g, '/');
+  if (padded.length % 4) padded += '='.repeat(4 - (padded.length % 4));
+  const bytes = fromB64(padded, 'bundle base64url payload');
+  if (b64url(bytes) !== value) throw new Error('Non-canonical bundle base64url payload');
+  return bytes;
+};
+const byteLength = (value) => new TextEncoder().encode(value).byteLength;
+const decodeUtf8 = (bytes) => new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+const assertMaxSize = (text) => {
+  const size = byteLength(text);
+  if (size > MAX_BUNDLE_BYTES) {
+    throw new Error('Bundle exceeds maximum decoded size (' + size + ' > ' + MAX_BUNDLE_BYTES + ' bytes)');
+  }
+};
+const isObject = (value) => value !== null && typeof value === 'object' && !Array.isArray(value);
+const isPositiveInteger = (value) => Number.isInteger(value) && value > 0;
+const hasCredentials = (secret) => isObject(secret) && isObject(secret.secrets) && Object.keys(secret.secrets).length > 0;
+
+const isJsonValue = (value, depth = 0) => {
+  if (depth > 20) return false;
+  if (value === null || typeof value === 'string' || typeof value === 'boolean') return true;
+  if (typeof value === 'number') return Number.isFinite(value);
+  if (Array.isArray(value)) return value.length <= 1000 && value.every((item) => isJsonValue(item, depth + 1));
+  if (!isObject(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length <= 1000 && entries.every(([key, item]) => key.length > 0 && key.length <= 128 && isJsonValue(item, depth + 1));
+};
+
+const validateModel = (model, index) => {
+  const prefix = 'models[' + index + ']';
+  if (!isObject(model)) throw new Error(prefix + ' must be an object');
+  if (typeof model.provider !== 'string' || model.provider.length === 0 || model.provider.length > 64) {
+    throw new Error(prefix + '.provider must be a non-empty string up to 64 characters');
+  }
+  if (typeof model.id !== 'string' || model.id.length === 0 || model.id.length > 128) {
+    throw new Error(prefix + '.id must be a non-empty string up to 128 characters');
+  }
+  for (const key of ['maxTokens', 'contextWindow', 'maxOutputTokens']) {
+    if (model[key] !== undefined && !isPositiveInteger(model[key])) {
+      throw new Error(prefix + '.' + key + ' must be a positive integer');
+    }
+  }
+  const contextLimit = model.contextWindow ?? model.maxTokens;
+  if (contextLimit !== undefined && model.maxOutputTokens !== undefined && model.maxOutputTokens > contextLimit) {
+    throw new Error(prefix + '.maxOutputTokens cannot exceed contextWindow (or maxTokens)');
+  }
+  if (model.modelType !== undefined && !MODEL_TYPES.has(model.modelType)) {
+    throw new Error(prefix + '.modelType is not supported');
+  }
+  if (model.generationModes !== undefined) {
+    if (!Array.isArray(model.generationModes) || !model.generationModes.every((mode) => GENERATION_MODES.has(mode))) {
+      throw new Error(prefix + '.generationModes contains an unsupported value');
+    }
+    if (model.modelType === 'image-generation' && model.generationModes.some((mode) => !IMAGE_MODES.has(mode))) {
+      throw new Error(prefix + ' image-generation model declares a video mode');
+    }
+    if (model.modelType === 'video-generation' && model.generationModes.some((mode) => !VIDEO_MODES.has(mode))) {
+      throw new Error(prefix + ' video-generation model declares an image mode');
+    }
+    if (model.modelType === 'text' && model.generationModes.length > 0) {
+      throw new Error(prefix + ' text model cannot declare image/video generation modes');
+    }
+  }
+  if (model.parameters !== undefined && (!isObject(model.parameters) || !isJsonValue(model.parameters))) {
+    throw new Error(prefix + '.parameters must be a JSON object with finite values');
+  }
+};
+
+const normalizePublic = (value) => {
+  if (!isObject(value)) throw new Error('pub must be an object');
+  const pub = {
+    ...value,
+    mcp: value.mcp ?? [],
+    models: value.models ?? [],
+    skills: value.skills ?? [],
+    prompts: value.prompts ?? [],
+    agents: value.agents ?? [],
+    resources: value.resources ?? [],
+  };
+  for (const section of ['mcp', 'models', 'skills', 'prompts', 'agents', 'resources']) {
+    if (!Array.isArray(pub[section])) throw new Error('pub.' + section + ' must be an array');
+  }
+  pub.models.forEach(validateModel);
+  return pub;
+};
+
+const normalizeSecret = (value) => {
+  if (value === undefined) value = {};
+  if (!isObject(value)) throw new Error('secret section must be an object');
+  const secret = {
+    ...value,
+    endpoints: value.endpoints ?? {},
+    customPrompts: value.customPrompts ?? {},
+    providerHints: value.providerHints ?? [],
+    secrets: value.secrets ?? {},
+  };
+  if (!isObject(secret.endpoints) || !isObject(secret.customPrompts) || !isObject(secret.secrets) || !Array.isArray(secret.providerHints)) {
+    throw new Error('secret section has an invalid shape');
+  }
+  return secret;
+};
+
+const assertSecretPolicy = (trust, secret, encrypted) => {
+  if (!hasCredentials(secret)) return;
+  if (trust === 'shared') throw new Error('trust="shared" bundles must not carry provider credentials');
+  if (!encrypted) throw new Error('trust="' + trust + '" credentials require password encryption');
+};
+
+const assertIterations = (iterations) => {
+  if (!Number.isInteger(iterations) || iterations < PBKDF2_MIN_ITERATIONS || iterations > PBKDF2_MAX_ITERATIONS) {
+    throw new Error('PBKDF2 iterations must be between ' + PBKDF2_MIN_ITERATIONS + ' and ' + PBKDF2_MAX_ITERATIONS);
+  }
+};
+
+const deriveKey = async (password, salt, iterations) => {
+  assertIterations(iterations);
+  if (!password) throw new Error('Password must not be empty');
+  const material = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name: 'PBKDF2', salt, iterations, hash: 'SHA-256' },
+    material,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt'],
+  );
+};
+
+const encrypt = async (plaintext, password, iterations) => {
   const salt = crypto.getRandomValues(new Uint8Array(16));
-  const key = await deriveKey(pw, salt);
+  const key = await deriveKey(password, salt, iterations);
   const iv = crypto.getRandomValues(new Uint8Array(12));
-  const ct = new Uint8Array(await crypto.subtle.encrypt({name:'AES-GCM',iv}, key, new TextEncoder().encode(pt)));
-  return { salt: b64(salt), iv: b64(iv), ct: b64(ct) };
+  const ciphertext = new Uint8Array(
+    await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(plaintext)),
+  );
+  return { salt: b64(salt), iv: b64(iv), ct: b64(ciphertext), iterations };
 };
-const decrypt = async (saltB, ivB, ctB, pw) => {
-  const salt = fromB64(saltB), iv = fromB64(ivB), ct = fromB64(ctB);
-  const key = await deriveKey(pw, salt);
-  const pt = await crypto.subtle.decrypt({name:'AES-GCM',iv}, key, ct);
-  return new TextDecoder().decode(pt);
+
+const decrypt = async (payload, password) => {
+  assertIterations(payload.iterations);
+  const salt = fromB64(payload.salt, 'salt');
+  const iv = fromB64(payload.iv, 'IV');
+  const ciphertext = fromB64(payload.ct, 'ciphertext');
+  if (salt.length !== 16) throw new Error('Invalid salt length');
+  if (iv.length !== 12) throw new Error('Invalid IV length');
+  if (ciphertext.length < 16) throw new Error('Ciphertext is missing the GCM tag');
+  const key = await deriveKey(password, salt, payload.iterations);
+  const plaintext = await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, ciphertext);
+  return decodeUtf8(new Uint8Array(plaintext));
+};
+
+const parseSecretText = (text) => normalizeSecret(JSON.parse(text));
+
+const validateBundle = (value) => {
+  if (!isObject(value)) throw new Error('Bundle must be an object');
+  const serialized = JSON.stringify(value);
+  assertMaxSize(serialized);
+  if (value.schema !== SCHEMA_ID) throw new Error('Not an agentconfig-bundle');
+  if (value.v !== VERSION) throw new Error('Unsupported bundle version: ' + String(value.v));
+  if (!['self', 'shared', 'managed'].includes(value.trust)) throw new Error('Invalid trust mode');
+  if (!Number.isInteger(value.created) || value.created < 0) throw new Error('Invalid created timestamp');
+  if (!Array.isArray(value.capabilities) || !value.capabilities.every((item) => typeof item === 'string')) {
+    throw new Error('capabilities must be a string array');
+  }
+  value.pub = normalizePublic(value.pub);
+  if (!isObject(value.payload) || typeof value.payload.alg !== 'string') throw new Error('Invalid payload envelope');
+  if (value.payload.alg === 'none') {
+    if (typeof value.payload.ct !== 'string') throw new Error('Invalid plaintext payload');
+    const secret = parseSecretText(decodeUtf8(fromB64(value.payload.ct, 'plaintext secret payload')));
+    assertSecretPolicy(value.trust, secret, false);
+  } else if (value.payload.alg === 'PBKDF2-SHA256-AES-256-GCM') {
+    assertIterations(value.payload.iterations);
+    if (typeof value.payload.salt !== 'string' || typeof value.payload.iv !== 'string' || typeof value.payload.ct !== 'string') {
+      throw new Error('Invalid encrypted payload');
+    }
+    if (fromB64(value.payload.salt, 'salt').length !== 16) throw new Error('Invalid salt length');
+    if (fromB64(value.payload.iv, 'IV').length !== 12) throw new Error('Invalid IV length');
+    if (fromB64(value.payload.ct, 'ciphertext').length < 16) throw new Error('Ciphertext is missing the GCM tag');
+  } else {
+    throw new Error('Unsupported payload algorithm: ' + value.payload.alg);
+  }
+  return value;
 };
 
 const buildBundle = async (input) => {
-  const secret = input.secret || { endpoints:{}, customPrompts:{}, providerHints:[], secrets:{} };
+  if (!isObject(input)) throw new Error('Config JSON must be an object');
+  const pub = normalizePublic(input.pub);
+  const secret = normalizeSecret(input.secret);
+  const trust = input.trust ?? 'shared';
+  if (!['self', 'shared', 'managed'].includes(trust)) throw new Error('Invalid trust mode: ' + trust);
+  const password = input.password;
+  const encrypted = typeof password === 'string' && password.length > 0;
+  if (typeof input.hint === 'string' && encrypted && input.hint.includes(password)) {
+    throw new Error('Password hint must not contain the password');
+  }
+  assertSecretPolicy(trust, secret, encrypted);
+  const iterations = input.iterations ?? PBKDF2_MIN_ITERATIONS;
+  assertIterations(iterations);
   const secretJson = JSON.stringify(secret);
-  const trust = input.trust || 'shared';
-  const hasSecrets = Object.keys(secret.secrets || {}).length > 0;
-  if (trust !== 'shared' && hasSecrets && !input.password) {
-    throw new Error('trust="'+trust+'" with secrets requires a password');
-  }
   let payload;
-  if (input.password) {
-    const r = await encrypt(secretJson, input.password);
-    payload = { alg:'PBKDF2-SHA256-AES-256-GCM', iterations:PBKDF2_ITER, salt:r.salt, iv:r.iv, ct:r.ct };
+  if (encrypted) {
+    const result = await encrypt(secretJson, password, iterations);
+    payload = {
+      alg: 'PBKDF2-SHA256-AES-256-GCM',
+      iterations: result.iterations,
+      salt: result.salt,
+      iv: result.iv,
+      ct: result.ct,
+    };
   } else {
-    payload = { alg:'none', ct: b64(new TextEncoder().encode(secretJson)) };
+    payload = { alg: 'none', ct: b64(new TextEncoder().encode(secretJson)) };
   }
-  const pub = input.pub || {};
-  const caps = [];
-  if (pub.mcp?.length) caps.push('mcp');
-  if (pub.models?.length) caps.push('models');
-  if (pub.skills?.length) caps.push('skills');
-  if (pub.prompts?.length) caps.push('prompts');
-  if (pub.agents?.length) caps.push('agents');
-  if (pub.resources?.length) caps.push('resources');
-  return { schema:SCHEMA_ID, v:VERSION, created:Date.now(), label:input.label, src:'web', trust, capabilities:caps, payload, pub };
+  const capabilities = [];
+  if (pub.mcp.length) capabilities.push('mcp');
+  if (pub.models.length) capabilities.push('models');
+  if (pub.skills.length) capabilities.push('skills');
+  if (pub.prompts.length) capabilities.push('prompts');
+  if (pub.agents.length) capabilities.push('agents');
+  if (pub.resources.length) capabilities.push('resources');
+  const bundle = {
+    schema: SCHEMA_ID,
+    v: VERSION,
+    created: Date.now(),
+    label: input.label,
+    src: 'web',
+    trust,
+    capabilities,
+    payload,
+    pub,
+  };
+  assertMaxSize(JSON.stringify(bundle));
+  return validateBundle(bundle);
 };
 
 const toDeepLink = (bundle) => {
-  const json = JSON.stringify(bundle);
-  const enc = b64url(new TextEncoder().encode(json));
-  if (enc.length > 20000) throw new Error('Bundle too large for URL ('+enc.length+' chars). Use .acfg file.');
-  return SCHEME+'://import?v='+bundle.v+'&bundle='+enc;
+  const validated = validateBundle(bundle);
+  const encoded = b64url(new TextEncoder().encode(JSON.stringify(validated)));
+  if (encoded.length > DEEP_LINK_MAX_BYTES) {
+    throw new Error('Bundle too large for URL (' + encoded.length + ' > ' + DEEP_LINK_MAX_BYTES + '). Use an .acfg file.');
+  }
+  return SCHEME + '://import?v=' + VERSION + '&bundle=' + encoded;
 };
 
 const fromDeepLink = (url) => {
-  const p = new URL(url);
-  if (p.hostname !== 'import') throw new Error('host must be import');
-  const enc = p.searchParams.get('bundle');
-  if (!enc) throw new Error('missing bundle param');
-  return JSON.parse(new TextDecoder().decode(fromB64Url(enc)));
+  const parsed = new URL(url);
+  if (parsed.protocol !== SCHEME + ':') throw new Error('Unexpected scheme: ' + parsed.protocol);
+  if (parsed.hostname !== 'import') throw new Error('Unexpected host: ' + parsed.hostname);
+  if (parsed.searchParams.get('v') !== String(VERSION)) throw new Error('Unsupported deep-link version');
+  const encoded = parsed.searchParams.get('bundle');
+  if (!encoded) throw new Error('Missing bundle parameter');
+  if (encoded.length > DEEP_LINK_MAX_BYTES) throw new Error('Deep-link payload is too large');
+  const json = decodeUtf8(fromB64Url(encoded));
+  assertMaxSize(json);
+  return validateBundle(JSON.parse(json));
 };
 
-const showMsg = (el, msg, type) => { el.innerHTML = '<div class="msg '+type+'">'+msg+'</div>'; };
+const showMessage = (element, message, type) => {
+  const box = document.createElement('div');
+  box.className = 'msg ' + type;
+  box.textContent = String(message);
+  element.replaceChildren(box);
+};
+const errorMessage = (error) => error instanceof Error ? error.message : String(error);
 
-document.getElementById('encBtnUrl').onclick = async () => {
-  const msg = document.getElementById('encMsg');
+const encodeFromForm = async () => {
+  const input = JSON.parse(document.getElementById('encInput').value);
+  input.password = document.getElementById('encPassword').value || undefined;
+  input.trust = document.getElementById('encTrust').value;
+  input.label = document.getElementById('encLabel').value || undefined;
+  return buildBundle(input);
+};
+
+document.getElementById('encBtnUrl').addEventListener('click', async () => {
+  const message = document.getElementById('encMsg');
+  const output = document.getElementById('encOut');
   try {
-    const input = JSON.parse(document.getElementById('encInput').value);
-    input.password = document.getElementById('encPassword').value || undefined;
-    input.trust = document.getElementById('encTrust').value;
-    input.label = document.getElementById('encLabel').value || undefined;
-    const bundle = await buildBundle(input);
+    const bundle = await encodeFromForm();
     const url = toDeepLink(bundle);
-    document.getElementById('encOut').textContent = url;
-    showMsg(msg, 'Encoded URL ('+url.length+' chars, trust='+bundle.trust+')', 'ok');
-  } catch (e) { showMsg(msg, e.message, 'err'); document.getElementById('encOut').textContent=''; }
-};
+    output.textContent = url;
+    showMessage(message, 'Encoded URL (' + url.length + ' characters, trust=' + bundle.trust + ')', 'ok');
+  } catch (error) {
+    showMessage(message, errorMessage(error), 'err');
+    output.textContent = '';
+  }
+});
 
-document.getElementById('encBtnFile').onclick = async () => {
-  const msg = document.getElementById('encMsg');
+document.getElementById('encBtnFile').addEventListener('click', async () => {
+  const message = document.getElementById('encMsg');
+  const output = document.getElementById('encOut');
   try {
-    const input = JSON.parse(document.getElementById('encInput').value);
-    input.password = document.getElementById('encPassword').value || undefined;
-    input.trust = document.getElementById('encTrust').value;
-    input.label = document.getElementById('encLabel').value || undefined;
-    const bundle = await buildBundle(input);
-    document.getElementById('encOut').textContent = JSON.stringify(bundle, null, 2);
-    showMsg(msg, 'Encoded .acfg JSON (trust='+bundle.trust+')', 'ok');
-  } catch (e) { showMsg(msg, e.message, 'err'); document.getElementById('encOut').textContent=''; }
-};
+    const bundle = await encodeFromForm();
+    output.textContent = JSON.stringify(bundle, null, 2);
+    showMessage(message, 'Encoded .acfg JSON (trust=' + bundle.trust + ')', 'ok');
+  } catch (error) {
+    showMessage(message, errorMessage(error), 'err');
+    output.textContent = '';
+  }
+});
 
-document.getElementById('decBtn').onclick = async () => {
-  const msg = document.getElementById('decMsg');
+document.getElementById('decBtn').addEventListener('click', async () => {
+  const message = document.getElementById('decMsg');
   const meta = document.getElementById('decMeta');
-  const out = document.getElementById('decOut');
+  const output = document.getElementById('decOut');
   try {
     const raw = document.getElementById('decInput').value.trim();
+    if (!raw) throw new Error('Paste a deep link or .acfg JSON first');
     let bundle;
-    if (raw.startsWith(SCHEME+'://')) {
+    if (raw.startsWith(SCHEME + '://')) {
       bundle = fromDeepLink(raw);
     } else {
-      bundle = JSON.parse(raw);
+      assertMaxSize(raw);
+      bundle = validateBundle(JSON.parse(raw));
     }
-    if (bundle.schema !== SCHEMA_ID) throw new Error('not an agentconfig-bundle');
-    meta.innerHTML = 'trust: <b>'+bundle.trust+'</b> &middot; caps: '+(bundle.capabilities||[]).join(', ')+' &middot; encrypted: '+(bundle.payload.alg!=='none');
-    const pw = document.getElementById('decPassword').value;
-    const out2 = { ...bundle };
-    if (bundle.payload.alg !== 'none') {
-      if (!pw) { showMsg(msg, 'Encrypted — enter password to reveal secret', 'err'); }
-      else {
-        try {
-          const secret = JSON.parse(await decrypt(bundle.payload.salt, bundle.payload.iv, bundle.payload.ct, pw));
-          out2.__secret = secret;
-          showMsg(msg, 'Decrypted OK', 'ok');
-        } catch (e) { showMsg(msg, 'Decrypt failed: '+e.message, 'err'); }
-      }
+    meta.textContent = 'trust: ' + bundle.trust + ' · capabilities: ' + (bundle.capabilities.join(', ') || '(none)') + ' · encrypted: ' + (bundle.payload.alg !== 'none');
+    const decoded = { ...bundle };
+    if (bundle.payload.alg === 'none') {
+      const secret = parseSecretText(decodeUtf8(fromB64(bundle.payload.ct, 'plaintext secret payload')));
+      assertSecretPolicy(bundle.trust, secret, false);
+      decoded.__secret = secret;
+      showMessage(message, 'Plain bundle — secret section validated', 'ok');
     } else {
-      const secret = JSON.parse(new TextDecoder().decode(fromB64(bundle.payload.ct)));
-      out2.__secret = secret;
-      showMsg(msg, 'Plain bundle — no password needed', 'ok');
+      const password = document.getElementById('decPassword').value;
+      if (!password) {
+        showMessage(message, 'Encrypted bundle — enter the password to reveal its secret section', 'err');
+      } else {
+        const secret = parseSecretText(await decrypt(bundle.payload, password));
+        assertSecretPolicy(bundle.trust, secret, true);
+        decoded.__secret = secret;
+        showMessage(message, 'Decrypted and validated', 'ok');
+      }
     }
-    out.textContent = JSON.stringify(out2, null, 2);
-  } catch (e) { showMsg(msg, e.message, 'err'); meta.innerHTML=''; out.textContent=''; }
-};
+    output.textContent = JSON.stringify(decoded, null, 2);
+  } catch (error) {
+    showMessage(message, errorMessage(error), 'err');
+    meta.textContent = '';
+    output.textContent = '';
+  }
+});
 </script>
 </body>
 </html>

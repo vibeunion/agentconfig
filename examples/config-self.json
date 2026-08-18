@@ -1,5 +1,5 @@
 {
-  "label": "Personal backup (with keys)",
+  "label": "Personal backup (synthetic credentials)",
   "trust": "self",
   "pub": {
     "mcp": [
@@ -13,7 +13,14 @@
       }
     ],
     "models": [
-      { "provider": "provider-a", "id": "model-x", "alias": "x" }
+      {
+        "provider": "provider-a",
+        "id": "model-x",
+        "alias": "x",
+        "contextWindow": 128000,
+        "modelType": "multimodal",
+        "parameters": { "reasoningEffort": "medium" }
+      }
     ],
     "skills": [],
     "prompts": []
@@ -23,8 +30,12 @@
     "customPrompts": {},
     "providerHints": [],
     "secrets": {
-      "provider-a": { "apiKey": "sk-demo-key-1234" },
-      "github": { "env": { "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_demo-token-xxxx" } }
+      "provider-a": { "apiKey": "EXAMPLE_ONLY_PROVIDER_KEY" },
+      "github": {
+        "env": {
+          "GITHUB_PERSONAL_ACCESS_TOKEN": "EXAMPLE_ONLY_GITHUB_TOKEN"
+        }
+      }
     }
   }
 }

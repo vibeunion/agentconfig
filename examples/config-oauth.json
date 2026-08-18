@@ -4,7 +4,14 @@
   "pub": {
     "mcp": [],
     "models": [
-      { "provider": "codex", "id": "codex-default", "alias": "codex" }
+      {
+        "provider": "codex",
+        "id": "codex-default",
+        "alias": "codex",
+        "contextWindow": 200000,
+        "modelType": "multimodal",
+        "parameters": { "reasoningEffort": "medium" }
+      }
     ],
     "skills": [],
     "prompts": []
@@ -17,9 +24,9 @@
       "codex": {
         "oauth": {
           "type": "codex",
-          "accessToken": "eyJhbGciOiJSUzI1NiJ9.SYNTHETIC.NOT_REAL_TOKEN",
-          "refreshToken": "rt.synthetic-not-real-refresh",
-          "idToken": "eyJhbGciOiJSUzI1NiJ9.SYNTHETIC.ID_TOKEN",
+          "accessToken": "SYNTHETIC_ACCESS_TOKEN_NOT_VALID",
+          "refreshToken": "SYNTHETIC_REFRESH_TOKEN_NOT_VALID",
+          "idToken": "SYNTHETIC_ID_TOKEN_NOT_VALID",
           "expired": "2026-12-31T23:59:59+08:00",
           "accountId": "synthetic-account-id",
           "email": "synthetic@example.com",

@@ -22,8 +22,50 @@
       }
     ],
     "models": [
-      { "provider": "provider-a", "id": "model-x", "alias": "x", "maxTokens": 200000 },
-      { "provider": "provider-b", "id": "model-y", "alias": "y" }
+      {
+        "provider": "provider-text",
+        "id": "text-model",
+        "alias": "text",
+        "maxTokens": 128000,
+        "modelType": "text",
+        "parameters": {
+          "temperature": 0.2,
+          "topP": 0.95
+        }
+      },
+      {
+        "provider": "provider-multimodal",
+        "id": "multimodal-model",
+        "alias": "vision",
+        "contextWindow": 200000,
+        "maxOutputTokens": 8192,
+        "modelType": "multimodal",
+        "parameters": {
+          "reasoningEffort": "medium"
+        }
+      },
+      {
+        "provider": "provider-image",
+        "id": "image-model",
+        "alias": "image",
+        "modelType": "image-generation",
+        "generationModes": ["text-to-image", "image-to-image"],
+        "parameters": {
+          "size": "1024x1024",
+          "quality": "high"
+        }
+      },
+      {
+        "provider": "provider-video",
+        "id": "video-model",
+        "alias": "video",
+        "modelType": "video-generation",
+        "generationModes": ["text-to-video", "image-to-video"],
+        "parameters": {
+          "durationSeconds": 8,
+          "aspectRatio": "16:9"
+        }
+      }
     ],
     "skills": [
       { "id": "docx", "enabled": true, "order": 1 },
@@ -37,15 +79,17 @@
   },
   "secret": {
     "endpoints": {
-      "provider-a": "https://api.example.com",
-      "provider-b": "https://api.example.org"
+      "provider-text": "https://api.example.com/text",
+      "provider-multimodal": "https://api.example.com/multimodal",
+      "provider-image": "https://api.example.com/images",
+      "provider-video": "https://api.example.com/videos"
     },
     "customPrompts": {
       "code-review": "Review this code for bugs, security issues, and style.",
       "default": "You are a senior engineer. Be concise."
     },
     "providerHints": [
-      { "provider": "provider-b", "baseUrl": "https://api.example.org/v1" }
+      { "provider": "provider-multimodal", "baseUrl": "https://api.example.com/v1" }
     ]
   }
 }

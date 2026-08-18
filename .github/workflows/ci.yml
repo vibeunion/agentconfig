@@ -5,32 +5,60 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  check:
+    name: Node ${{ matrix.node }}
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [18, 20, 22]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
         with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm install
-      - run: npm run build
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - name: Install locked dependencies
+        run: npm ci
+      - name: Build, typecheck, test, and validate the browser site
+        run: npm run check
       - name: Smoke test CLI
+        if: matrix.node == 20
+        shell: bash
         run: |
-          # encode shared config to URL, then validate and decode
+          set -euo pipefail
+          export ACB_TEST_PASSWORD
+          ACB_TEST_PASSWORD="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
+
           node packages/cli/dist/index.js encode examples/config.json --as url > /tmp/url.txt
           node packages/cli/dist/index.js validate "$(cat /tmp/url.txt)"
           node packages/cli/dist/index.js decode "$(cat /tmp/url.txt)" > /tmp/decoded.json
-          grep -q "provider-a" /tmp/decoded.json && echo "shared decode OK"
-          # encode self config (with secrets) to file, then decode with password
-          node packages/cli/dist/index.js encode examples/config-self.json --password hunter2 --trust self --as file --out /tmp/test.acfg
+          grep -q '"modelType": "multimodal"' /tmp/decoded.json
+
+          node packages/cli/dist/index.js encode examples/config-self.json \
+            --password-env ACB_TEST_PASSWORD --trust self --as file --out /tmp/test.acfg
           node packages/cli/dist/index.js validate /tmp/test.acfg
-          node packages/cli/dist/index.js decode /tmp/test.acfg --password hunter2 --reveal > /tmp/decoded2.json
-          grep -q "sk-demo-key-1234" /tmp/decoded2.json && echo "self secret revealed OK"
-          # security rule: self + secrets + no password must fail
-          if node packages/cli/dist/index.js encode examples/config-self.json --trust self --as url 2>/dev/null; then
-            echo "ERROR: security rule not enforced"; exit 1
-          else
-            echo "security rule enforced OK"
+          node packages/cli/dist/index.js decode /tmp/test.acfg \
+            --password-env ACB_TEST_PASSWORD --reveal > /tmp/decoded2.json
+          grep -q 'EXAMPLE_ONLY_PROVIDER_KEY' /tmp/decoded2.json
+
+          if node packages/cli/dist/index.js encode examples/config-self.json \
+            --trust self --as url >/dev/null 2>&1; then
+            echo 'ERROR: plaintext self credentials were accepted'
+            exit 1
+          fi
+
+          if node packages/cli/dist/index.js encode examples/config-self.json \
+            --password-env ACB_TEST_PASSWORD --trust shared --as url >/dev/null 2>&1; then
+            echo 'ERROR: shared credentials were accepted'
+            exit 1
           fi

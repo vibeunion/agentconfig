@@ -4,7 +4,7 @@ A portable, optionally-encrypted format for sharing AI agent configurations
 across desktop clients — MCP servers, model lists, skills, prompts, agents,
 resources, and (when explicitly allowed) provider credentials.
 
-> **Status:** Draft v1.1 — reference implementation under development.
+> **Status:** Draft v1.4 — reference implementation under development.
 > **Try it online:** <https://zuohuadong.github.io/agentconfig/>
 
 ## Why
@@ -21,9 +21,11 @@ client can import or export with a click.
   recipients can inspect before trusting.
 - **Trust-aware** — `self` / `shared` / `managed` modes make credential
   handling explicit and safe.
-- **Client-neutral** — capability negotiation; unknown sections are ignored,
-  not rejected.
-- **No new crypto** — PBKDF2 + AES-256-GCM via platform crypto.
+- **Rich model metadata** — context windows, text/multimodal/image/video model
+  types, image/video generation modes, and provider-specific JSON parameters.
+- **Client-neutral** — capability negotiation; unknown fields are preserved and
+  unknown capability names are ignored rather than rejected.
+- **No new crypto** — bounded PBKDF2 + AES-256-GCM via platform crypto.
 
 ## Repository layout
 
@@ -40,8 +42,8 @@ examples/             # sample config.json files
 ```bash
 git clone https://github.com/vibeunion/agentconfig.git
 cd agentconfig
-npm install
-npm run build
+npm ci
+npm run check
 
 # validate an encoded bundle (file or URL)
 node packages/cli/dist/index.js validate my.acfg
@@ -49,13 +51,47 @@ node packages/cli/dist/index.js validate my.acfg
 # encode the example into a deep link
 node packages/cli/dist/index.js encode examples/config.json --as url
 
-# encode a self backup (with secrets) — password required
+# encode a self backup (with synthetic example credentials)
+export ACB_PASSWORD="$(node -e "process.stdout.write(require('node:crypto').randomBytes(32).toString('hex'))")"
 node packages/cli/dist/index.js encode examples/config-self.json \
-  --password hunter2 --trust self --as file --out my.acfg
+  --password-env ACB_PASSWORD --trust self --as file --out my.acfg
 
-# decode a bundle back to JSON (reveal secret with password)
-node packages/cli/dist/index.js decode my.acfg --password hunter2 --reveal
+# decode a bundle back to JSON
+node packages/cli/dist/index.js decode my.acfg \
+  --password-env ACB_PASSWORD --reveal
 ```
+
+Using `--password-env` avoids placing a password directly in shell history or
+most process listings. `--password` remains available for interactive/manual
+use.
+
+## Model metadata
+
+Each entry in `pub.models` remains backward-compatible with the original
+`provider` / `id` / `alias` / `maxTokens` shape and can additionally include:
+
+```json
+{
+  "provider": "provider-video",
+  "id": "video-model",
+  "alias": "video",
+  "contextWindow": 128000,
+  "maxOutputTokens": 8192,
+  "modelType": "video-generation",
+  "generationModes": ["text-to-video", "image-to-video"],
+  "parameters": {
+    "durationSeconds": 8,
+    "aspectRatio": "16:9",
+    "seed": 42
+  }
+}
+```
+
+`modelType` accepts `text`, `multimodal`, `image-generation`, or
+`video-generation`. Image models may declare `text-to-image` and
+`image-to-image`; video models may declare `text-to-video` and
+`image-to-video`. `parameters` accepts bounded, JSON-serializable provider
+request defaults and is intentionally provider-neutral.
 
 ## Use as a library
 
@@ -64,24 +100,41 @@ npm install @agentconfig/core
 ```
 
 ```ts
-import { buildBundle, parseBundle, encryptWithPassword } from '@agentconfig/core';
+import {
+  AcbModelType,
+  AcbTrustMode,
+  buildBundle,
+  encryptWithPassword,
+} from '@agentconfig/core';
 
 const bundle = await buildBundle({
-  trust: 'self',
-  pub: { mcp: [...], models: [...] },
-  secret: { endpoints: {...}, secrets: { 'provider-a': { apiKey: 'sk-...' } } },
-  password: 'hunter2',
+  trust: AcbTrustMode.Self,
+  pub: {
+    models: [
+      {
+        provider: 'provider-a',
+        id: 'model-x',
+        contextWindow: 200_000,
+        modelType: AcbModelType.Multimodal,
+        parameters: { reasoningEffort: 'medium' },
+      },
+    ],
+  },
+  secret: {
+    secrets: { 'provider-a': { apiKey: process.env.PROVIDER_API_KEY } },
+  },
+  password: process.env.ACB_PASSWORD,
   encrypt: encryptWithPassword,
 });
 ```
 
 ## Trust modes
 
-| Mode | Carries secrets? | Encrypted? | Use case |
+| Mode | Carries credentials? | Encrypted? | Use case |
 |---|---|---|---|
 | `shared` | never | optional | Sharing config with others |
-| `self` | allowed | required if secrets | Personal backup / cross-device |
-| `managed` | allowed | required if secrets | Enterprise IT push |
+| `self` | allowed | required if credentials | Personal backup / cross-device |
+| `managed` | allowed | required if credentials | Enterprise IT push |
 
 ## Specification & integration
 

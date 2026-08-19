@@ -244,7 +244,14 @@ export const BundlePublicSchema = z
     resources: z.array(ResourceEntryPublicSchema).default([]),
   })
   .passthrough()
-  .default({});
+  .default({
+    mcp: [],
+    models: [],
+    skills: [],
+    prompts: [],
+    agents: [],
+    resources: [],
+  });
 
 export const OAuthCredentialSchema = z
   .object({
@@ -289,7 +296,12 @@ export const BundleSecretSchema = z
     secrets: z.record(z.string(), ProviderSecretSchema).default({}),
   })
   .passthrough()
-  .default({});
+  .default({
+    endpoints: {},
+    customPrompts: {},
+    providerHints: [],
+    secrets: {},
+  });
 
 export const EncryptionParamsSchema = z
   .object({

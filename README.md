@@ -37,6 +37,11 @@ site/                 # online generator/parser (pure browser, Web Crypto)
 examples/             # sample config.json files
 ```
 
+## Development requirements
+
+Building and testing this repository requires Node.js `^20.19.0`, `^22.12.0`,
+or `>=24.0.0`.
+
 ## Quick start
 
 ```bash
@@ -138,8 +143,16 @@ const bundle = await buildBundle({
 
 ## Specification & integration
 
-- [spec/SPEC.md](./spec/SPEC.md) — the format specification
-- [spec/INTEGRATION.md](./spec/INTEGRATION.md) — multi-language integration guide (TS/Python/Go/Rust) with test vectors
+- [SPEC.md](spec/SPEC.md) — wire format and security rules.
+- [INTEGRATION.md](spec/INTEGRATION.md) — client integration guidance.
+
+## Security notes
+
+- `shared` bundles cannot carry provider credentials, even when encrypted.
+- `self` and `managed` credentials must be encrypted.
+- PBKDF2 work factors and decoded bundle sizes are bounded before expensive work.
+- CLI output files are created or overwritten with owner-only permissions on POSIX systems.
+- Example credentials are synthetic and intentionally unusable.
 
 ## License
 

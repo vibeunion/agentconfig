@@ -5,10 +5,12 @@
   "description": "AgentConfig Bundle — a portable, encrypted format for sharing AI agent configurations across desktop clients.",
   "license": "MIT",
   "author": "Zhuah Dong",
-  "workspaces": ["packages/*"],
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
-    "build": "npm run build --workspace @agentconfig/core && npm run build --workspace @agentconfig/cli",
-    "typecheck": "npm run typecheck --workspace @agentconfig/core && npm run typecheck --workspace @agentconfig/cli",
+    "build": "npm run build --workspace @agentconfig/core && npm run build --workspace @agentconfig/cli && npm run build --workspace @agentconfig/deepseek-harness",
+    "typecheck": "npm run typecheck --workspace @agentconfig/core && npm run typecheck --workspace @agentconfig/cli && npm run typecheck --workspace @agentconfig/deepseek-harness",
     "test": "vitest run",
     "site:check": "node scripts/check-site.mjs",
     "check": "npm run build && npm run typecheck && npm test && npm run site:check",

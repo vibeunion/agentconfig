@@ -5,7 +5,7 @@ across desktop clients — MCP servers, model lists, skills, prompts, agents,
 resources, and (when explicitly allowed) provider credentials.
 
 > **Status:** Draft v1.4 — reference implementation under development.
-> **Try it online:** <https://zuohuadong.github.io/agentconfig/>
+> **Try it online:** <https://vibeunion.github.io/agentconfig/>
 
 ## Why
 
@@ -26,23 +26,68 @@ client can import or export with a click.
 - **Client-neutral** — capability negotiation; unknown fields are preserved and
   unknown capability names are ignored rather than rejected.
 - **No new crypto** — bounded PBKDF2 + AES-256-GCM via platform crypto.
+- **Multi-language SDKs** — official SDKs for TypeScript, Python, Go, Rust, and Java.
+- **DeepSeek Harness** — first-class test, evaluation, and execution harness plugin.
 
 ## Repository layout
 
 ```
-spec/                 # specification (SPEC.md) + integration guide (INTEGRATION.md)
-packages/core/        # schema + codec (TypeScript, framework-agnostic)
-packages/cli/         # `agentconfig` CLI: validate / encode / decode
-site/                 # online generator/parser (pure browser, Web Crypto)
-examples/             # sample config.json files
+spec/                     # specification (SPEC.md) + integration guide (INTEGRATION.md)
+sdks/                     # multi-language SDKs
+  ├── ts/                 # TypeScript SDK documentation (workspace @agentconfig/core)
+  ├── python/             # Python SDK (agentconfig)
+  ├── go/                 # Go SDK (github.com/vibeunion/agentconfig/sdks/go)
+  ├── rust/               # Rust SDK (agentconfig crate)
+  └── java/               # Java SDK (io.agentconfig:agentconfig Maven package)
+packages/core/            # TypeScript core: schema + codec
+packages/cli/             # `agentconfig` CLI: validate / encode / decode
+packages/deepseek-harness/# DeepSeek test & evaluation harness plugin
+site/                     # online generator/parser (pure browser, Web Crypto)
+examples/                 # sample config.json files and verification vectors
+```
+
+## Official SDKs
+
+| Language | Directory / Package | Installation |
+|---|---|---|
+| **TypeScript / JS** | [`sdks/ts`](sdks/ts), [`packages/core`](packages/core) | `npm install @agentconfig/core` |
+| **Python** | [`sdks/python`](sdks/python) | `pip install agentconfig` |
+| **Go** | [`sdks/go`](sdks/go) | `go get github.com/vibeunion/agentconfig/sdks/go` |
+| **Rust** | [`sdks/rust`](sdks/rust) | `agentconfig = "0.1.0"` in `Cargo.toml` |
+| **Java** | [`sdks/java`](sdks/java) | `io.agentconfig:agentconfig:0.1.0` in `pom.xml` |
+
+## DeepSeek Harness Plugin
+
+The DeepSeek test & evaluation harness plugin allows executing agent prompts,
+validating tool calls, inspecting reasoning tokens (`reasoning_content`), and
+running automated test suites directly against DeepSeek models using AgentConfig
+bundles:
+
+- **TypeScript:** `packages/deepseek-harness` (`@agentconfig/deepseek-harness`)
+- **Python:** `agentconfig.plugins.deepseek_harness`
+
+```ts
+import { decryptWithPassword, extractBundleFromDeepLink } from '@agentconfig/core';
+import { DeepSeekHarness } from '@agentconfig/deepseek-harness';
+
+const bundle = extractBundleFromDeepLink('agentconfig://import?...');
+const harness = await DeepSeekHarness.fromBundle(bundle, 'password', decryptWithPassword);
+
+const result = await harness.runTask({
+  prompt: 'Solve 2x + 5 = 15',
+  model: 'deepseek-reasoner',
+});
+
+console.log('Reasoning:', result.reasoningContent);
+console.log('Answer:', result.content);
 ```
 
 ## Development requirements
 
 Building and testing this repository requires Node.js `^20.19.0`, `^22.12.0`,
-or `>=24.0.0`.
+or `>=24.0.0`, and Python `>=3.8`.
 
-## Quick start
+## Quick start (CLI)
 
 ```bash
 git clone https://github.com/vibeunion/agentconfig.git
@@ -66,73 +111,6 @@ node packages/cli/dist/index.js decode my.acfg \
   --password-env ACB_PASSWORD --reveal
 ```
 
-Using `--password-env` avoids placing a password directly in shell history or
-most process listings. `--password` remains available for interactive/manual
-use.
-
-## Model metadata
-
-Each entry in `pub.models` remains backward-compatible with the original
-`provider` / `id` / `alias` / `maxTokens` shape and can additionally include:
-
-```json
-{
-  "provider": "provider-video",
-  "id": "video-model",
-  "alias": "video",
-  "contextWindow": 128000,
-  "maxOutputTokens": 8192,
-  "modelType": "video-generation",
-  "generationModes": ["text-to-video", "image-to-video"],
-  "parameters": {
-    "durationSeconds": 8,
-    "aspectRatio": "16:9",
-    "seed": 42
-  }
-}
-```
-
-`modelType` accepts `text`, `multimodal`, `image-generation`, or
-`video-generation`. Image models may declare `text-to-image` and
-`image-to-image`; video models may declare `text-to-video` and
-`image-to-video`. `parameters` accepts bounded, JSON-serializable provider
-request defaults and is intentionally provider-neutral.
-
-## Use as a library
-
-```bash
-npm install @agentconfig/core
-```
-
-```ts
-import {
-  AcbModelType,
-  AcbTrustMode,
-  buildBundle,
-  encryptWithPassword,
-} from '@agentconfig/core';
-
-const bundle = await buildBundle({
-  trust: AcbTrustMode.Self,
-  pub: {
-    models: [
-      {
-        provider: 'provider-a',
-        id: 'model-x',
-        contextWindow: 200_000,
-        modelType: AcbModelType.Multimodal,
-        parameters: { reasoningEffort: 'medium' },
-      },
-    ],
-  },
-  secret: {
-    secrets: { 'provider-a': { apiKey: process.env.PROVIDER_API_KEY } },
-  },
-  password: process.env.ACB_PASSWORD,
-  encrypt: encryptWithPassword,
-});
-```
-
 ## Trust modes
 
 | Mode | Carries credentials? | Encrypted? | Use case |
@@ -144,15 +122,7 @@ const bundle = await buildBundle({
 ## Specification & integration
 
 - [SPEC.md](spec/SPEC.md) — wire format and security rules.
-- [INTEGRATION.md](spec/INTEGRATION.md) — client integration guidance.
-
-## Security notes
-
-- `shared` bundles cannot carry provider credentials, even when encrypted.
-- `self` and `managed` credentials must be encrypted.
-- PBKDF2 work factors and decoded bundle sizes are bounded before expensive work.
-- CLI output files are created or overwritten with owner-only permissions on POSIX systems.
-- Example credentials are synthetic and intentionally unusable.
+- [INTEGRATION.md](spec/INTEGRATION.md) — multi-language client integration guide and canonical test vectors.
 
 ## License
 

@@ -1,0 +1,32 @@
+name: TypeBox migration review
+
+# Temporary branch-only validation; removed before this migration is merged.
+on:
+  push:
+    branches: [refactor/typebox-schemas]
+permissions:
+  contents: read
+jobs:
+  review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - run: npm ci
+      - name: Capture installed validation workspace
+        run: |
+          tar --exclude='./.git' -czf "$RUNNER_TEMP/typebox-workspace.tar.gz" .
+          npm audit --json > "$RUNNER_TEMP/typebox-audit.json" || test "$?" -eq 1
+      - uses: actions/upload-artifact@v7
+        with:
+          name: typebox-review-workspace
+          path: |
+            ${{ runner.temp }}/typebox-workspace.tar.gz
+            ${{ runner.temp }}/typebox-audit.json
+          retention-days: 1
+      - run: npm run check

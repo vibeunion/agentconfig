@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  parseSchema,
   ACB_MAX_BUNDLE_BYTES,
   ACB_PBKDF2_MAX_ITERATIONS,
   ACB_PBKDF2_MIN_ITERATIONS,
@@ -65,7 +66,7 @@ describe('canonical integration test vector', () => {
 
 describe('model metadata schema', () => {
   it('keeps legacy model entries valid', () => {
-    const parsed = BundlePublicSchema.parse({
+    const parsed = parseSchema(BundlePublicSchema, {
       models: [{ provider: 'provider-a', id: 'model-x', maxTokens: 200_000 }],
     });
     expect(parsed.models[0]).toMatchObject({
@@ -76,7 +77,7 @@ describe('model metadata schema', () => {
   });
 
   it('supports context, model kinds, generation modes, and custom parameters', () => {
-    const parsed = ModelEntryPublicSchema.parse({
+    const parsed = parseSchema(ModelEntryPublicSchema, {
       provider: 'provider-media',
       id: 'video-x',
       alias: 'video',
@@ -103,7 +104,7 @@ describe('model metadata schema', () => {
 
   it('rejects inconsistent generation modes and non-JSON parameters', () => {
     expect(() =>
-      ModelEntryPublicSchema.parse({
+      parseSchema(ModelEntryPublicSchema, {
         provider: 'provider-media',
         id: 'image-x',
         modelType: AcbModelType.ImageGeneration,
@@ -112,7 +113,7 @@ describe('model metadata schema', () => {
     ).toThrow(/image-generation/);
 
     expect(() =>
-      ModelEntryPublicSchema.parse({
+      parseSchema(ModelEntryPublicSchema, {
         provider: 'provider-a',
         id: 'model-x',
         parameters: { callback: () => undefined },
@@ -122,7 +123,7 @@ describe('model metadata schema', () => {
 
   it('rejects output limits larger than the declared context', () => {
     expect(() =>
-      ModelEntryPublicSchema.parse({
+      parseSchema(ModelEntryPublicSchema, {
         provider: 'provider-a',
         id: 'model-x',
         contextWindow: 4_096,

@@ -91,7 +91,7 @@ const openObject = <P extends TProperties>(properties: P, options: { default?: u
     Type.Record(RecordKeySchema, Type.Unknown()),
   ], options);
 const defaulted = <T extends TSchema>(schema: T, value: Static<T>): T =>
-  Type.Clone(schema, { default: value });
+  Object.assign(Value.Clone(schema), { default: value });
 const optional = Type.Optional;
 const positiveInteger = () => Type.Integer({ minimum: 1, maximum: Number.MAX_SAFE_INTEGER });
 const urlString = () => Type.Refine(
@@ -318,7 +318,7 @@ export class SchemaValidationError extends Error {
  * particular, bounded parameter refinements see original cyclic/non-JSON input.
  */
 const normalizeDefaults = (schema: TSchema, input: unknown): unknown => {
-  const value = input === undefined && Object.hasOwn(schema, 'default')
+  const value = input === undefined && 'default' in schema && Object.hasOwn(schema, 'default')
     ? Value.Clone(schema.default) : input;
   if (Type.IsIntersect(schema)) {
     return schema.allOf.reduce<unknown>((result, member) => normalizeDefaults(member, result), value);

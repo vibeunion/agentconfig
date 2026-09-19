@@ -84,8 +84,12 @@ console.log('Answer:', result.content);
 
 ## Development requirements
 
-Building and testing this repository requires Node.js `^20.19.0`, `^22.12.0`,
-or `>=24.0.0`, and Python `>=3.8`.
+Building and testing this repository requires Node.js `^22.12.0`, `^24.0.0`,
+or `>=26.0.0`, and Python `>=3.8`. Vitest 5 does not support Node 20.
+
+CI uses supported development toolchains with strict engine checks. It also
+runs the built CLI on Node 20 for encode/decode, encryption, file permissions,
+and credential-policy compatibility; Node 20 is not a development toolchain.
 
 ## Quick start (CLI)
 

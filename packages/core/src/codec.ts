@@ -1,4 +1,5 @@
 import {
+  parseSchema,
   ACB_DEEP_LINK_MAX_BYTES,
   ACB_DEEP_LINK_SCHEME,
   ACB_FILE_EXTENSION,
@@ -168,7 +169,7 @@ const deriveCapabilities = (pub: BundlePublic): string[] => {
 };
 
 const parseSecretJson = (json: string): BundleSecret => {
-  return BundleSecretSchema.parse(parseJson(json, 'secret section'));
+  return parseSchema(BundleSecretSchema, parseJson(json, 'secret section'));
 };
 
 const parsePlainSecret = (bundle: ConfigBundle): BundleSecret | null => {
@@ -194,9 +195,9 @@ const validateParsedBundle = (bundle: ConfigBundle): ConfigBundle => {
 };
 
 export const buildBundle = async (input: BundleInput): Promise<ConfigBundle> => {
-  const pub = BundlePublicSchema.parse(input.pub);
-  const secret = BundleSecretSchema.parse(input.secret ?? EMPTY_SECRET);
-  const trust = AcbTrustModeSchema.parse(input.trust ?? AcbTrustMode.Shared);
+  const pub = parseSchema(BundlePublicSchema, input.pub);
+  const secret = parseSchema(BundleSecretSchema, input.secret ?? EMPTY_SECRET);
+  const trust = parseSchema(AcbTrustModeSchema, input.trust ?? AcbTrustMode.Shared);
   const iterations = input.iterations ?? ACB_PBKDF2_MIN_ITERATIONS;
   assertIterationCount(iterations);
 
@@ -228,7 +229,7 @@ export const buildBundle = async (input: BundleInput): Promise<ConfigBundle> => 
     };
   }
 
-  const bundle = ConfigBundleSchema.parse({
+  const bundle = parseSchema(ConfigBundleSchema, {
     schema: ACB_SCHEMA_ID,
     v: ACB_VERSION,
     created: Date.now(),
@@ -247,7 +248,7 @@ export const buildBundle = async (input: BundleInput): Promise<ConfigBundle> => 
 export const parseBundle = (raw: unknown): ConfigBundle => {
   const serialized = serializeUnknown(raw);
   assertSerializedSize(serialized);
-  return validateParsedBundle(ConfigBundleSchema.parse(raw));
+  return validateParsedBundle(parseSchema(ConfigBundleSchema, raw));
 };
 
 export const bundleToDeepLink = (

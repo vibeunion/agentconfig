@@ -1,17 +1,15 @@
 name: TypeBox migration bootstrap
 
-# Temporary development-branch helper. Removed before the migration PR is ready.
+# Branch-only migration helper; removed from the final PR diff.
 on:
   push:
     branches: [refactor/typebox-schemas]
-
 permissions:
   contents: write
-
 jobs:
   bootstrap:
     if: >-
-      github.event.head_commit.message == 'chore: prepare TypeBox migration dependencies'
+      github.event.head_commit.message == 'refactor: migrate schemas to TypeBox'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -19,20 +17,24 @@ jobs:
       - uses: actions/setup-node@v7
         with:
           node-version: 22
-      - name: Generate the lockfile with npm
+      - name: Migrate schema call sites and regenerate lockfile
         run: |
+          node --input-type=module <<'JS'
+          import { readFileSync, writeFileSync } from 'node:fs';
+          for (const path of ['packages/core/src/codec.ts', 'packages/core/src/core.test.ts']) {
+            let source = readFileSync(path, 'utf8');
+            source = source.replace(/\b([A-Z][A-Za-z]+Schema)\.parse\(/g, 'parseSchema($1, ');
+            if (!source.includes('  parseSchema,\n')) source = source.replace('  ACB_', '  parseSchema,\n  ACB_');
+            writeFileSync(path, source);
+          }
+          JS
           npm install --package-lock-only --ignore-scripts
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package-lock.json
-          git diff --cached --quiet || git commit -m 'chore: regenerate lockfile for TypeBox'
+          git add packages/core/src/codec.ts packages/core/src/core.test.ts package-lock.json
+          git diff --cached --quiet || git commit -m 'refactor: update TypeBox call sites and npm lockfile'
           git push origin HEAD:refs/heads/refactor/typebox-schemas
-      - name: Install development dependencies
+      - name: Install locked dependencies
         run: npm ci
-      - name: Prepare validation workspace
-        run: tar --exclude='./.git' --exclude='./typebox-workspace.tar.gz' -czf typebox-workspace.tar.gz .
-      - uses: actions/upload-artifact@v7
-        with:
-          name: typebox-validation-workspace
-          path: typebox-workspace.tar.gz
-          retention-days: 1
+      - name: Build, typecheck, test, and validate site
+        run: npm run check

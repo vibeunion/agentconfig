@@ -31,7 +31,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "zod": "^4.6.5"
+    "typebox": "^1.3.34"
   },
   "devDependencies": {
     "@types/node": "^26.5.1",

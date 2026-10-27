@@ -31,7 +31,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "typebox": "^1.4.2"
+    "typebox": "^1.4.3"
   },
   "devDependencies": {
     "@types/node": "^26.6.5",

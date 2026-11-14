@@ -30,9 +30,14 @@ optionally encrypt with a password, wrap in the envelope, then serialize as
 
 ## 2. Multi-Language SDKs
 
+> **Availability:** the SDK packages are not published to npm, PyPI, Maven
+> Central or crates.io yet. Until they are, consume them from source in this
+> repository (see below); the install commands in the table describe the
+> intended registry names, not something you can run today.
+
 Official SDKs are located in the `sdks/` directory:
 
-| Language | Directory / Package | Installation |
+| Language | Directory / Package | Installation (planned registry name) |
 |---|---|---|
 | **TypeScript / JS** | `packages/core` & `sdks/ts` | `npm install @agentconfig/core` |
 | **Python** | `sdks/python` | `pip install agentconfig` |
@@ -45,7 +50,11 @@ Official SDKs are located in the `sdks/` directory:
 ## 3. TypeScript (`@agentconfig/core`)
 
 ```bash
-npm install @agentconfig/core
+# Not published yet: build it from this repository first.
+git clone https://github.com/vibeunion/agentconfig
+cd agentconfig && npm ci && npm run build
+# then, in your project:
+npm install ../agentconfig/packages/core
 ```
 
 ```ts
@@ -75,7 +84,8 @@ const secret = await revealSecret(bundle2, 'hunter2', decryptWithPassword);
 ## 4. Python (`agentconfig`)
 
 ```bash
-pip install agentconfig
+# Not published yet: install from source in this repository.
+pip install ./sdks/python
 ```
 
 ```python

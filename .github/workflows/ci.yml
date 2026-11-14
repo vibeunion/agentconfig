@@ -83,3 +83,12 @@ jobs:
             echo 'ERROR: shared credentials were accepted'
             exit 1
           fi
+
+  rust-sdk:
+    name: Rust SDK
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run Rust SDK tests
+        run: cargo test --manifest-path sdks/rust/Cargo.toml

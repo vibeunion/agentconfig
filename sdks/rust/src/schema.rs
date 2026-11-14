@@ -254,7 +254,8 @@ pub struct ConfigBundle {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hint: Option<String>,
     pub payload: EncryptionPayload,
-    #[serde(rename = "pub")]`n    pub pub_section: BundlePublic,
+    #[serde(rename = "pub")]
+    pub pub_section: BundlePublic,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }

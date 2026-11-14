@@ -3,6 +3,8 @@ import {
   ACB_PBKDF2_MAX_ITERATIONS,
   ACB_PBKDF2_MIN_ITERATIONS,
 } from './schema.js';
+import type { ConfigBundle } from './schema.js';
+import { canonicalSignatureInput } from './signature.js';
 import type {
   PasswordEncryptResult,
   BundlePasswordDecryptor,
@@ -97,4 +99,53 @@ export const decryptWithPassword: BundlePasswordDecryptor = async (
   decipher.setAuthTag(tag);
   const plaintext = Buffer.concat([decipher.update(encrypted), decipher.final()]);
   return plaintext.toString('utf8');
+};
+
+const SIGNATURE_BYTES = 64;
+
+/** SPKI/DER public key, standard base64 — what an org publishes next to `keyId`. */
+const decodePublicKey = (publicKey: string): crypto.KeyObject => {
+  const der = decodeBase64('public key', publicKey);
+  try {
+    return crypto.createPublicKey({ key: der, format: 'der', type: 'spki' });
+  } catch (error) {
+    throw new Error(`Invalid Ed25519 public key: ${(error as Error).message}`);
+  }
+};
+
+/**
+ * Verify a `managed` bundle signature (§7.3). Returns `false` for a bundle with
+ * no `sig` instead of throwing: an unsigned bundle is a state clients must
+ * handle, not a crash. Throws only when the key material itself is invalid.
+ */
+export const verifyBundleSignature = (bundle: ConfigBundle, publicKey: string): boolean => {
+  if (!bundle.sig) return false;
+  if (bundle.sig.alg !== 'Ed25519') return false;
+  const signature = Buffer.from(bundle.sig.value, 'base64');
+  if (signature.length !== SIGNATURE_BYTES) return false;
+  if (signature.toString('base64') !== bundle.sig.value) {
+    throw new Error('Non-canonical signature base64');
+  }
+  return crypto.verify(
+    null,
+    Buffer.from(canonicalSignatureInput(bundle), 'utf8'),
+    decodePublicKey(publicKey),
+    signature,
+  );
+};
+
+/** Producer side of §7.3, mostly useful for tests and reference clients. */
+export const signBundle = (bundle: ConfigBundle, privateKey: string): ConfigBundle => {
+  const der = decodeBase64('private key', privateKey);
+  const key = crypto.createPrivateKey({ key: der, format: 'der', type: 'pkcs8' });
+  const value = crypto.sign(null, Buffer.from(canonicalSignatureInput(bundle), 'utf8'), key);
+  return {
+    ...bundle,
+    sig: {
+      alg: 'Ed25519',
+      issuer: bundle.sig?.issuer ?? '',
+      keyId: bundle.sig?.keyId ?? '',
+      value: value.toString('base64'),
+    },
+  };
 };

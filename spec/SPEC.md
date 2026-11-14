@@ -1,6 +1,6 @@
 # ACB — AgentConfig Bundle Specification
 
-**Status:** Draft v1.4 (2026-08-18)
+**Status:** Draft v1.5 (2026-10-25)
 
 **License:** MIT
 
@@ -160,7 +160,23 @@ collect in `shared` mode.
 
 `transport` is `stdio`, `sse`, or `http`. For `sse` and `http`, producers place
 the endpoint in the Secret Section rather than exposing a potentially private
-URL in `pub`.
+URL in `pub`:
+
+```json
+{
+  "secrets": {
+    "github": {
+      "url": "https://mcp.example.com/sse",
+      "headers": { "Authorization": "Bearer <credential>" }
+    }
+  }
+}
+```
+
+The endpoint lives in `secrets[<name>].url`, keyed by the same `name` used in
+`pub.mcp`. Importers MUST treat a missing `url` for a remote transport as
+"collect from the user", the same way they treat `envKeys` in `shared` mode.
+`endpoints` remains reserved for provider API base URLs.
 
 ### 5.2 `models`
 
@@ -297,6 +313,7 @@ The decoded plaintext inside `payload.ct` has this shape:
 | `customPrompts` | Prompt ID to body. Prompts may be proprietary. |
 | `providerHints` | Extra provider metadata such as base URL overrides. |
 | `secrets` | Provider/MCP name to credential bundle. Only valid for `self` or `managed`. |
+| `secrets[<name>].url` | Remote endpoint for an `sse` / `http` MCP server. |
 
 ### 6.1 `secrets[<provider>]`
 
@@ -306,6 +323,7 @@ The decoded plaintext inside `payload.ct` has this shape:
 | `env` | MCP environment values keyed by variable name. |
 | `headers` | Extra provider HTTP headers. |
 | `oauth` | OAuth/OIDC credential object. See §6.2. |
+| `url` | Endpoint for a remote (`sse` / `http`) MCP server. |
 
 The `secrets` map is keyed by the same provider string used in `pub.models` and
 by MCP server `name`.
@@ -540,3 +558,4 @@ password directly in command arguments.
 | 2026-08-07 | 1.2-draft | Added free-form OAuth/OIDC credential transport with common fields and `extra`. |
 | 2026-08-07 | 1.3-draft | Added `agentconfig://auth/callback` and OIDC `issuer`, `clientId`, and `redirectUri` fields. |
 | 2026-08-18 | 1.4-draft | Added model context windows, output limits, text/multimodal/image/video model types, image/video generation modes, and JSON custom parameters. Hardened trust enforcement, parser size/base64 checks, PBKDF2 bounds, browser rendering, CLI password handling, tests, and CI action pinning. |
+| 2026-10-25 | 1.5-draft | Defined `secrets[<name>].url` as the carrier for `sse` / `http` MCP endpoints, so two implementations cannot disagree about where a remote endpoint lives. |

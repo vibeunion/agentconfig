@@ -221,6 +221,13 @@ export const ProviderSecretSchema = openObject({
   env: defaulted(stringRecord(), {}),
   headers: defaulted(stringRecord(), {}),
   oauth: optional(OAuthCredentialSchema),
+  /**
+   * Endpoint for `sse` / `http` MCP servers (and any provider whose base URL is
+   * private enough to keep out of `pub`). Keyed by the same `name`/`provider`
+   * string used in the public section, so two independent implementations
+   * cannot disagree about where the URL lives.
+   */
+  url: optional(urlString()),
 });
 export const BundleSecretSchema = openObject({
   endpoints: defaulted(stringRecord(), {}),
@@ -282,6 +289,7 @@ export type OAuthCredentialInput = DefaultInput<OAuthCredential,
   'email' | 'scope' | 'issuer' | 'clientId' | 'redirectUri', 'extra'>;
 export type ProviderSecretInput = Pick<ProviderSecret, 'apiKey'> & {
   env?: Record<string, string>; headers?: Record<string, string>; oauth?: OAuthCredentialInput;
+  url?: string;
 } & Record<string, unknown>;
 export type BundlePublicInput = ({
   mcp?: McpEntryPublicInput[]; models?: ModelEntryPublicInput[];

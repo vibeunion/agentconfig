@@ -181,3 +181,18 @@ describe('native TypeBox migration', () => {
     }
   });
 });
+
+describe('remote MCP endpoints', () => {
+  it('carries an sse/http endpoint in the secret section, keyed by the mcp name', () => {
+    const normalized = parseSchema(BundleSecretSchema, {
+      secrets: { github: { url: 'https://mcp.example.com/sse', headers: { Authorization: 'Bearer x' } } },
+    });
+    expect(normalized.secrets.github.url).toBe('https://mcp.example.com/sse');
+    expect(normalized.secrets.github.headers.Authorization).toBe('Bearer x');
+  });
+
+  it('rejects a non-URL endpoint instead of silently storing it', () => {
+    const failure = safeParseSchema(BundleSecretSchema, { secrets: { github: { url: 'not a url' } } });
+    expect(failure.success).toBe(false);
+  });
+});

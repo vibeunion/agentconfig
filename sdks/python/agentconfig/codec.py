@@ -78,11 +78,36 @@ def derive_capabilities(pub: BundlePublic) -> List[str]:
     return caps
 
 
+def validate_agent_prompts(public: BundlePublic) -> None:
+    prompt_ids = {prompt.id for prompt in public.prompts}
+    for agent in public.agents:
+        if agent.promptId is not None:
+            if not isinstance(agent.promptId, str) or not 1 <= len(agent.promptId) <= 64 or agent.promptId not in prompt_ids:
+                raise ValueError(f"Agent {agent.id} has an invalid or unresolved promptId")
+
+
+def validate_remote_urls(secret: BundleSecret) -> None:
+    for provider in secret.secrets.values():
+        if provider.url is not None:
+            if not isinstance(provider.url, str):
+                raise ValueError("Invalid remote MCP URL")
+            endpoint = urlparse(provider.url)
+            if not endpoint.scheme:
+                raise ValueError("Invalid remote MCP URL")
+            if endpoint.scheme in {"http", "https"}:
+                hostname = endpoint.hostname
+                if not hostname or any(char.isspace() for char in hostname):
+                    raise ValueError("Invalid remote MCP hostname")
+                # urllib validates numeric syntax and range when the port is read.
+                endpoint.port
+
+
 def validate_bundle(bundle: ConfigBundle) -> ConfigBundle:
     if bundle.schema != ACB_SCHEMA_ID:
         raise ValueError(f'Invalid schema ID: expected "{ACB_SCHEMA_ID}", got "{bundle.schema}"')
     if bundle.v != ACB_VERSION:
         raise ValueError(f"Unsupported bundle version: {bundle.v}")
+    validate_agent_prompts(bundle.pub)
     if bundle.payload.alg == AcbEncryptionAlgorithm.Pbkdf2Sha256Aes256Gcm.value:
         if not bundle.payload.salt or not bundle.payload.iv or not bundle.payload.ct or not bundle.payload.iterations:
             raise ValueError("Missing required fields in encrypted payload")
@@ -100,6 +125,7 @@ def validate_bundle(bundle: ConfigBundle) -> ConfigBundle:
         raw_bytes = from_b64(bundle.payload.ct, "plaintext secret payload")
         secret_json = raw_bytes.decode("utf-8")
         secret_data = json.loads(secret_json)
+        validate_remote_urls(BundleSecret.from_dict(secret_data))
         assert_secret_policy(bundle.trust, secret_data, False)
     else:
         raise ValueError(f"Unknown encryption algorithm: {bundle.payload.alg}")
@@ -129,6 +155,7 @@ def build_bundle(
         raise ValueError("Password hint MUST NOT contain the password")
 
     assert_secret_policy(trust, secret_obj, encrypted)
+    validate_remote_urls(secret_obj)
     secret_json = json.dumps(secret_obj.to_dict(), separators=(",", ":"))
 
     if password:
@@ -253,6 +280,7 @@ def reveal_secret(bundle: ConfigBundle, password: Optional[str] = None) -> Bundl
 
     secret_data = json.loads(secret_json)
     secret = BundleSecret.from_dict(secret_data)
+    validate_remote_urls(secret)
     assert_secret_policy(
         validated.trust,
         secret,

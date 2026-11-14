@@ -118,6 +118,8 @@ pub struct AgentEntryPublic {
     pub model: Option<String>,
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
     pub skill_ids: Vec<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub prompt_id: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }
@@ -180,6 +182,8 @@ pub struct OAuthCredential {
     pub redirect_uri: Option<String>,
     #[serde(default)]
     pub extra: HashMap<String, serde_json::Value>,
+    #[serde(flatten)]
+    pub unknown_fields: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize, PartialEq)]
@@ -193,6 +197,8 @@ pub struct ProviderSecret {
     pub headers: HashMap<String, String>,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub oauth: Option<OAuthCredential>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub url: Option<String>,
     #[serde(flatten)]
     pub extra: HashMap<String, serde_json::Value>,
 }

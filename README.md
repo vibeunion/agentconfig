@@ -48,13 +48,36 @@ examples/                 # sample config.json files and verification vectors
 
 ## Official SDKs
 
-| Language | Directory / Package | Installation |
+> **Availability:** the SDK packages are not published to npm, PyPI, Maven
+> Central or crates.io yet. Until they are, consume them from source in this
+> repository (see below); the install commands in the table describe the
+> intended registry names, not something you can run today.
+
+| Language | Directory / Package | Installation (planned registry name) |
 |---|---|---|
 | **TypeScript / JS** | [`sdks/ts`](sdks/ts), [`packages/core`](packages/core) | `npm install @agentconfig/core` |
 | **Python** | [`sdks/python`](sdks/python) | `pip install agentconfig` |
 | **Go** | [`sdks/go`](sdks/go) | `go get github.com/vibeunion/agentconfig/sdks/go` |
 | **Rust** | [`sdks/rust`](sdks/rust) | `agentconfig = "0.1.0"` in `Cargo.toml` |
 | **Java** | [`sdks/java`](sdks/java) | `io.agentconfig:agentconfig:0.1.0` in `pom.xml` |
+
+### Using the SDK from source today
+
+```bash
+git clone https://github.com/vibeunion/agentconfig
+cd agentconfig
+npm ci && npm run build          # builds @agentconfig/core and the CLI
+node packages/cli/dist/index.js validate examples/config.json
+```
+
+For another workspace, add a local dependency instead of a registry one:
+
+```json
+{ "dependencies": { "@agentconfig/core": "file:../agentconfig/packages/core" } }
+```
+
+The TypeScript package also works without a build step by importing
+`packages/core/src/index.ts` through your bundler.
 
 ## DeepSeek Harness Plugin
 

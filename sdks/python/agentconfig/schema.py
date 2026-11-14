@@ -114,6 +114,7 @@ class ModelEntryPublic:
     provider: str
     id: str
     alias: Optional[str] = None
+    enabled: bool = True  # 省略即为开启，与 mcp/skills 的约定一致
     maxTokens: Optional[int] = None
     contextWindow: Optional[int] = None
     maxOutputTokens: Optional[int] = None
@@ -126,6 +127,8 @@ class ModelEntryPublic:
         d: Dict[str, Any] = {"provider": self.provider, "id": self.id}
         if self.alias is not None:
             d["alias"] = self.alias
+        if self.enabled is not True:
+            d["enabled"] = self.enabled
         if self.maxTokens is not None:
             d["maxTokens"] = self.maxTokens
         if self.contextWindow is not None:
@@ -145,12 +148,13 @@ class ModelEntryPublic:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> ModelEntryPublic:
-        known = {"provider", "id", "alias", "maxTokens", "contextWindow", "maxOutputTokens", "modelType", "generationModes", "parameters"}
+        known = {"provider", "id", "alias", "enabled", "maxTokens", "contextWindow", "maxOutputTokens", "modelType", "generationModes", "parameters"}
         extra = {k: v for k, v in data.items() if k not in known}
         return cls(
             provider=data["provider"],
             id=data["id"],
             alias=data.get("alias"),
+            enabled=data.get("enabled", True),
             maxTokens=data.get("maxTokens"),
             contextWindow=data.get("contextWindow"),
             maxOutputTokens=data.get("maxOutputTokens"),

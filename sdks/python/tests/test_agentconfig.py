@@ -133,6 +133,16 @@ class TestAgentConfig(unittest.TestCase):
         self.assertEqual(rev.secrets["deepseek"].oauth.accessToken, "jwt-access-token")
         self.assertEqual(rev.secrets["deepseek"].oauth.redirectUri, "agentconfig://auth/callback")
 
+    def test_model_enabled_round_trip(self):
+        # 省略 = 开启：不写字段，保持与老包一致的字节
+        on = ModelEntryPublic(provider="p", id="m")
+        self.assertNotIn("enabled", on.to_dict())
+        self.assertTrue(ModelEntryPublic.from_dict({"provider": "p", "id": "m"}).enabled)
+        # 显式关掉的模型必须写进包里，否则接收方会当成开启
+        off = ModelEntryPublic(provider="p", id="m", enabled=False)
+        self.assertIs(off.to_dict()["enabled"], False)
+        self.assertIs(ModelEntryPublic.from_dict({"provider": "p", "id": "m", "enabled": False}).enabled, False)
+
     def test_trust_violations_rejected(self):
         # 1. shared cannot have secrets
         with self.assertRaises(ValueError):

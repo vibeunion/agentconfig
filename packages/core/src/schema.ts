@@ -192,6 +192,12 @@ export const AgentEntryPublicSchema = openObject({
   name: optional(Type.String({ maxLength: 80 })),
   model: optional(Type.String({ maxLength: 128 })),
   skillIds: defaulted(Type.Array(Type.String({ minLength: 1, maxLength: 64 })), []),
+  /**
+   * Prompt entry that carries this agent's instructions. Without it an exported
+   * agent is only a name + model: the behaviour that makes it an agent lives in
+   * `customPrompts[<promptId>]` in the Secret Section.
+   */
+  promptId: optional(Type.String({ minLength: 1, maxLength: 64 })),
 });
 export const ResourceEntryPublicSchema = openObject({
   uri: Type.String({ minLength: 1, maxLength: 256 }),
@@ -275,7 +281,7 @@ export type McpEntryPublicInput = DefaultInput<McpEntryPublic,
 export type ModelEntryPublicInput = ModelEntryPublic;
 export type SkillEntryPublicInput = DefaultInput<SkillEntryPublic, 'id' | 'order', 'enabled'>;
 export type PromptEntryPublicInput = PromptEntryPublic;
-export type AgentEntryPublicInput = DefaultInput<AgentEntryPublic, 'id' | 'name' | 'model', 'skillIds'>;
+export type AgentEntryPublicInput = DefaultInput<AgentEntryPublic, 'id' | 'name' | 'model', 'skillIds' | 'promptId'>;
 export type ResourceEntryPublicInput = ResourceEntryPublic;
 export type OAuthCredentialInput = DefaultInput<OAuthCredential,
   'type' | 'accessToken' | 'refreshToken' | 'idToken' | 'expired' | 'accountId' |

@@ -1,6 +1,6 @@
 # ACB — AgentConfig Bundle Specification
 
-**Status:** Draft v1.4 (2026-08-18)
+**Status:** Draft v1.5 (2026-10-25)
 
 **License:** MIT
 
@@ -248,9 +248,18 @@ Prompt bodies live in `customPrompts` inside the Secret Section.
   "id": "researcher",
   "name": "Researcher",
   "model": "model-x",
-  "skillIds": ["web-search", "pdf"]
+  "skillIds": ["web-search", "pdf"],
+  "promptId": "researcher-instructions"
 }
 ```
+
+`promptId` points at an entry in `pub.prompts`; the body lives in
+`customPrompts[<promptId>]` in the Secret Section. An agent is more than a name
+and a model reference: without its instructions an imported agent silently
+behaves like a generic assistant. Producers that export an `agents` entry MUST
+either include `promptId` or state in `pub.prompts` that no instructions are
+carried. Importers that cannot resolve a `promptId` MUST keep the agent
+disabled rather than guessing its behaviour.
 
 ### 5.6 `resources`
 
@@ -540,3 +549,4 @@ password directly in command arguments.
 | 2026-08-07 | 1.2-draft | Added free-form OAuth/OIDC credential transport with common fields and `extra`. |
 | 2026-08-07 | 1.3-draft | Added `agentconfig://auth/callback` and OIDC `issuer`, `clientId`, and `redirectUri` fields. |
 | 2026-08-18 | 1.4-draft | Added model context windows, output limits, text/multimodal/image/video model types, image/video generation modes, and JSON custom parameters. Hardened trust enforcement, parser size/base64 checks, PBKDF2 bounds, browser rendering, CLI password handling, tests, and CI action pinning. |
+| 2026-10-25 | 1.5-draft | Added `agents[].promptId` so an agent carries a reference to its instructions instead of exporting as a bare name and model. |

@@ -181,3 +181,18 @@ describe('native TypeBox migration', () => {
     }
   });
 });
+
+describe('agent instruction binding', () => {
+  it('lets an agent reference the prompt entry that carries its instructions', () => {
+    const normalized = parseSchema(AgentEntryPublicSchema, {
+      id: 'researcher', model: 'model-x', promptId: 'researcher-instructions',
+    });
+    expect(normalized.promptId).toBe('researcher-instructions');
+  });
+
+  it('keeps agents without instructions valid for clients that never had them', () => {
+    const normalized = parseSchema(AgentEntryPublicSchema, { id: 'plain' });
+    expect(normalized.promptId).toBeUndefined();
+    expect(normalized.skillIds).toEqual([]);
+  });
+});

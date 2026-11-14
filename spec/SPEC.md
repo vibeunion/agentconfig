@@ -1,6 +1,6 @@
 # ACB — AgentConfig Bundle Specification
 
-**Status:** Draft v1.5 (2026-11-14)
+**Status:** Draft v1.6 (2026-11-14)
 
 **License:** MIT
 
@@ -216,12 +216,24 @@ parameter metadata:
 | `provider` | string 1–64 | yes | Provider identifier; also used to match secret/provider hints. |
 | `id` | string 1–128 | yes | Provider model identifier. |
 | `alias` | string ≤64 | no | Client-friendly local alias. |
+| `enabled` | boolean | no, default `true` | Whether the producing client had this model turned on. See below. |
 | `maxTokens` | positive integer | no | Legacy combined token limit. Retained for compatibility. |
 | `contextWindow` | positive integer | no | Total context capacity in tokens. Prefer this over `maxTokens` for new producers. |
 | `maxOutputTokens` | positive integer | no | Maximum output/completion tokens. MUST NOT exceed `contextWindow`, or `maxTokens` when `contextWindow` is absent. |
 | `modelType` | enum | no | `text`, `multimodal`, `image-generation`, or `video-generation`. |
 | `generationModes` | enum[] | no | Supported media-generation input/output routes. |
 | `parameters` | JSON object | no | Provider-neutral container for provider-specific request defaults. |
+
+`enabled` follows the same convention as `mcp[].enabled` and `skills[].enabled`:
+
+- Omitting it means `true`, so bundles produced before this field existed keep
+  their original meaning.
+- A producer that knows a model is turned off MUST emit `enabled: false` rather
+  than dropping the entry. Dropping it loses the fact that the model is
+  configured at all, and an importer would then re-enable nothing while the
+  receiving client may still list the model as on.
+- An importer MUST preserve `false`. Importing a bundle MUST NOT silently turn a
+  disabled model on, and enabling it later is an explicit user action.
 
 `generationModes` values:
 
@@ -568,3 +580,4 @@ password directly in command arguments.
 | 2026-08-18 | 1.4-draft | Added model context windows, output limits, text/multimodal/image/video model types, image/video generation modes, and JSON custom parameters. Hardened trust enforcement, parser size/base64 checks, PBKDF2 bounds, browser rendering, CLI password handling, tests, and CI action pinning. |
 | 2026-11-14 | 1.5-draft | Defined `secrets[<name>].url` as the carrier for `sse` / `http` MCP endpoints. `endpoints` stays reserved for provider API base URLs. |
 | 2026-11-14 | 1.5-draft | Added optional `agents[].promptId` pointing at `pub.prompts`, with the body in `customPrompts[<promptId>]`. Omitting `promptId` means no instructions are carried. |
+| 2026-11-14 | 1.6-draft | Added optional `models[].enabled` (default `true`) so a bundle can carry "this model is turned off" instead of losing it. |

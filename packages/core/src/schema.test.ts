@@ -181,3 +181,46 @@ describe('native TypeBox migration', () => {
     }
   });
 });
+
+describe('remote MCP endpoints', () => {
+  it('carries an sse/http endpoint in the secret section, keyed by the mcp name', () => {
+    const normalized = parseSchema(BundleSecretSchema, {
+      secrets: { github: { url: 'https://mcp.example.com/sse', headers: { Authorization: 'Bearer x' } } },
+    });
+    expect(normalized.secrets.github.url).toBe('https://mcp.example.com/sse');
+    expect(normalized.secrets.github.headers.Authorization).toBe('Bearer x');
+  });
+
+  it('rejects a non-URL endpoint instead of silently storing it', () => {
+    const failure = safeParseSchema(BundleSecretSchema, { secrets: { github: { url: 'not a url' } } });
+    expect(failure.success).toBe(false);
+  });
+});
+
+describe('agent instruction binding', () => {
+  it('lets an agent reference the prompt entry that carries its instructions', () => {
+    const normalized = parseSchema(AgentEntryPublicSchema, {
+      id: 'researcher', model: 'model-x', promptId: 'researcher-instructions',
+    });
+    expect(normalized.promptId).toBe('researcher-instructions');
+  });
+
+  it('keeps agents without instructions valid for clients that never had them', () => {
+    const normalized = parseSchema(AgentEntryPublicSchema, { id: 'plain' });
+    expect(normalized.promptId).toBeUndefined();
+    expect(normalized.skillIds).toEqual([]);
+  });
+
+  it('requires a set promptId to match an entry in pub.prompts', () => {
+    const linked = parseSchema(BundlePublicSchema, {
+      prompts: [{ id: 'researcher-instructions' }],
+      agents: [{ id: 'researcher', promptId: 'researcher-instructions' }],
+    });
+    expect(linked.agents[0].promptId).toBe('researcher-instructions');
+    const missing = safeParseSchema(BundlePublicSchema, {
+      agents: [{ id: 'researcher', promptId: 'missing-instructions' }],
+    });
+    expect(missing.success).toBe(false);
+    if (!missing.success) expect(missing.error.message).toContain('missing-instructions');
+  });
+});

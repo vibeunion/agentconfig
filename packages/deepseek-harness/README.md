@@ -11,11 +11,13 @@ Official DeepSeek test and evaluation harness plugin for AgentConfig Bundle.
 
 ## Installation
 
-Not published to npm yet. Build it from the repository and install by path:
+Not published to npm yet. Build it from this repository, then install it from
+your project by path:
 
 ```bash
 git clone https://github.com/vibeunion/agentconfig
 cd agentconfig && npm ci && npm run build
+# then, in your project:
 npm install ../agentconfig/packages/deepseek-harness
 ```
 

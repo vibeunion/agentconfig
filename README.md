@@ -4,7 +4,7 @@ A portable, optionally-encrypted format for sharing AI agent configurations
 across desktop clients — MCP servers, model lists, skills, prompts, agents,
 resources, and (when explicitly allowed) provider credentials.
 
-> **Status:** Draft v1.4 — reference implementation under development.
+> **Status:** Draft v1.5 — reference implementation under development.
 > **Try it online:** <https://vibeunion.github.io/agentconfig/>
 
 ## Why
@@ -68,6 +68,7 @@ git clone https://github.com/vibeunion/agentconfig
 cd agentconfig
 npm ci && npm run build          # builds @agentconfig/core and the CLI
 node packages/cli/dist/index.js validate examples/config.json
+pip install ./sdks/python        # Python SDK from this checkout
 ```
 
 For another workspace, add a local dependency instead of a registry one:

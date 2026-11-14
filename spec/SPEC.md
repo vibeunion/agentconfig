@@ -1,6 +1,6 @@
 # ACB — AgentConfig Bundle Specification
 
-**Status:** Draft v1.5 (2026-11-14)
+**Status:** Draft v1.7 (2026-11-14)
 
 **License:** MIT
 
@@ -83,6 +83,7 @@ the same JSON envelope, so parsers are carrier-agnostic.
 | `hint` | string ≤80 | no | Password hint in plaintext. MUST NOT contain the password. |
 | `payload` | object | yes | Secret-section envelope. See §4. |
 | `pub` | object | yes | Public, non-sensitive metadata. See §5. |
+| `sig` | object | no | Origin signature. Required for `managed` bundles. See §7.3. |
 
 ---
 
@@ -409,6 +410,54 @@ The reference TypeScript schema explicitly preserves and validates these fields.
 - Credentials MAY be present and require password encryption.
 - Importers SHOULD audit the event and MAY require an additional identity check.
 
+A `managed` bundle claims organizational authority, so the claim has to be
+checkable. Without a signature it is indistinguishable from a `self` bundle that
+merely wrote `"trust": "managed"`, which is a one-line edit.
+
+```json
+{
+  "sig": {
+    "alg": "Ed25519",
+    "issuer": "acme.example.com",
+    "keyId": "acme-baseline-2026-11",
+    "value": "<base64 of the 64-byte signature>"
+  }
+}
+```
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `alg` | `"Ed25519"` | yes | Signature algorithm. This specification defines Ed25519 only. |
+| `issuer` | string 1–256 | yes | Who claims to have produced the bundle. Not trusted on its own; it is what a client matches against its trusted-issuer list. |
+| `keyId` | string 1–128 | yes | Which key signed, so a client can select the matching public key and support rotation. |
+| `value` | base64 | yes | Standard base64 of exactly 64 bytes. |
+
+**Signing input.** The signed bytes are the UTF-8 encoding of the envelope, with
+`sig` removed and all declared defaults (§3, §5) applied, serialized as JSON with
+object keys sorted by UTF-16 code unit order and no insignificant whitespace.
+For the value types this specification allows — finite numbers, strings, arrays,
+plain objects — that is RFC 8785 (JCS). Producers and verifiers MUST produce
+byte-identical input; applying defaults first means a verifier does not need to
+know whether the producer spelled out an empty `agents` array.
+
+Signing the canonical form rather than the original bytes is deliberate: every
+copy-paste and storage path re-encodes the JSON, so a text-level signature would
+fail for reasons unrelated to tampering.
+
+**Rules.**
+
+- A producer that emits `trust: "managed"` MUST include `sig`.
+- An importer that has the issuer's public key for `sig.keyId` MUST verify, and
+  MUST refuse to apply the bundle when verification fails. A changed `pub`,
+  `capabilities`, `payload` or `trust` invalidates the signature.
+- An importer that cannot verify (no key, unknown `keyId`, unsupported `alg`)
+  MUST NOT describe the bundle as approved by the issuer. It MAY still apply the
+  bundle if the user explicitly confirms an "unverified managed bundle".
+- An importer MUST NOT silently strip `sig` when re-exporting; re-signing
+  requires the private key and a fresh `created`.
+- `sig` covers the encrypted payload, so a signature stays valid without the
+  decryption password. Verifying before asking for the password is expected.
+
 ### 7.4 Producer enforcement
 
 A producer MUST reject either condition:
@@ -421,12 +470,22 @@ trust == shared AND secrets non-empty
 trust in {self, managed} AND secrets non-empty AND payload.alg == none
 ```
 
+```text
+trust == managed AND sig absent
+```
+
 ### 7.5 Importer enforcement
 
 An importer validates a plaintext secret section immediately. For an encrypted
 payload, it validates the same trust rules immediately after successful
 decryption and before applying any data. An importer MUST never write a secret
 section that violates §7.4.
+
+Signature state is evaluated before decryption, since `sig` covers the ciphertext
+(§7.3). An importer MUST resolve one of three states for a `managed` bundle —
+verified, unverified, or verification-failed — and MUST NOT collapse "unverified"
+into "verified" just because decryption succeeded. Credentials decrypted from an
+unverified managed bundle are no more trustworthy than a `self` bundle's.
 
 ---
 
@@ -549,7 +608,8 @@ password directly in command arguments.
 ## 14. Open questions
 
 1. Should custom-scheme conflicts be resolved through a manifest?
-2. Should managed bundles support origin signatures such as Ed25519?
+2. ~~Should managed bundles support origin signatures such as Ed25519?~~
+   Resolved in 1.7-draft: yes, `sig` with Ed25519 (§7.3).
 3. Should the format support per-field encryption granularity?
 4. What rotation/revocation mechanism should managed credentials use?
 5. Should future revisions add explicit input/output modality arrays (including
@@ -568,3 +628,5 @@ password directly in command arguments.
 | 2026-08-18 | 1.4-draft | Added model context windows, output limits, text/multimodal/image/video model types, image/video generation modes, and JSON custom parameters. Hardened trust enforcement, parser size/base64 checks, PBKDF2 bounds, browser rendering, CLI password handling, tests, and CI action pinning. |
 | 2026-11-14 | 1.5-draft | Defined `secrets[<name>].url` as the carrier for `sse` / `http` MCP endpoints. `endpoints` stays reserved for provider API base URLs. |
 | 2026-11-14 | 1.5-draft | Added optional `agents[].promptId` pointing at `pub.prompts`, with the body in `customPrompts[<promptId>]`. Omitting `promptId` means no instructions are carried. |
+| 2026-11-14 | 1.6-draft | Added optional `models[].enabled` (default `true`) so a bundle can carry "this model is turned off" instead of losing it. |
+| 2026-11-14 | 1.7-draft | Added `sig` (Ed25519 over the canonical envelope) and made it required for `managed` bundles, so an enterprise claim is checkable. Unsigned managed bundles are unverified, not trusted. |

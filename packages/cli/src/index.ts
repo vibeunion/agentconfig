@@ -5,11 +5,13 @@ import {
   AcbTrustMode,
   buildBundle,
   bundleToDeepLink,
+  bundleSignatureState,
   bundleToFileString,
   decryptWithPassword,
   encryptWithPassword,
   extractBundleFromDeepLink,
   isPasswordRequired,
+  isUnverifiedManagedBundle,
   parseBundleFromFileString,
   revealSecret,
   type BundleInput,
@@ -140,6 +142,11 @@ const cmdValidate = (target: string): void => {
   console.log(`  capabilities:  ${bundle.capabilities.join(', ') || '(none)'}`);
   console.log(`  encrypted:     ${encrypted ? `yes (${bundle.payload.alg})` : 'no'}`);
   if (bundle.label) console.log(`  label:         ${bundle.label}`);
+  // 企业包的可信度必须一眼可见：没签名就等于"某人自称 managed"（§7.3）。
+  const signature = bundleSignatureState(bundle);
+  console.log(`  signature:     ${signature === 'signed'
+    ? `${bundle.sig?.alg} by ${bundle.sig?.issuer} (${bundle.sig?.keyId}) - not verified, run inspect with a key`
+    : isUnverifiedManagedBundle(bundle) ? 'none (unverified managed bundle)' : 'none (not required)'}`);
   if (bundle.hint) console.log(`  hint:          ${bundle.hint}`);
   const counts = {
     mcp: bundle.pub.mcp.length,

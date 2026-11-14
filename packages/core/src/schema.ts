@@ -19,6 +19,10 @@ export type AcbEncryptionAlgorithm =
 export const ACB_PBKDF2_MIN_ITERATIONS = 100_000;
 export const ACB_PBKDF2_MAX_ITERATIONS = 1_000_000;
 
+export const AcbSignatureAlgorithm = { Ed25519: 'Ed25519' } as const;
+export type AcbSignatureAlgorithm =
+  typeof AcbSignatureAlgorithm[keyof typeof AcbSignatureAlgorithm];
+
 export const AcbTrustMode = { Self: 'self', Shared: 'shared', Managed: 'managed' } as const;
 export type AcbTrustMode = typeof AcbTrustMode[keyof typeof AcbTrustMode];
 
@@ -267,6 +271,19 @@ export const PlainParamsSchema = openObject({
   alg: Type.Literal(AcbEncryptionAlgorithm.None), ct: Type.String(),
 });
 export const PayloadEnvelopeSchema = Type.Union([EncryptionParamsSchema, PlainParamsSchema]);
+/**
+ * Origin signature for `managed` bundles. `value` is the Ed25519 signature over
+ * `canonicalSignatureInput(bundle)` (§7.3), standard base64 of 64 bytes.
+ */
+export const BundleSignatureSchema = openObject({
+  alg: Type.Literal(AcbSignatureAlgorithm.Ed25519),
+  /** Who claims to have produced the bundle, e.g. `acme.example.com`. */
+  issuer: Type.String({ minLength: 1, maxLength: 256 }),
+  /** Stable key identifier so a client can pick the matching public key. */
+  keyId: Type.String({ minLength: 1, maxLength: 128 }),
+  /** Standard base64 of the 64-byte Ed25519 signature. */
+  value: Type.String({ minLength: 4, maxLength: 256 }),
+});
 export const ConfigBundleSchema = openObject({
   schema: Type.Literal(ACB_SCHEMA_ID), v: Type.Literal(ACB_VERSION),
   created: Type.Integer({ minimum: 0, maximum: Number.MAX_SAFE_INTEGER }),
@@ -276,6 +293,7 @@ export const ConfigBundleSchema = openObject({
   capabilities: defaulted(Type.Array(AcbCapabilitySchema), []),
   hint: optional(Type.String({ maxLength: 80 })),
   payload: PayloadEnvelopeSchema, pub: BundlePublicSchema,
+  sig: optional(BundleSignatureSchema),
 });
 
 export type McpEntryPublic = Static<typeof McpEntryPublicSchema>;
@@ -291,6 +309,7 @@ export type BundleSecret = Static<typeof BundleSecretSchema>;
 export type EncryptionParams = Static<typeof EncryptionParamsSchema>;
 export type PlainParams = Static<typeof PlainParamsSchema>;
 export type PayloadEnvelope = Static<typeof PayloadEnvelopeSchema>;
+export type BundleSignature = Static<typeof BundleSignatureSchema>;
 export type ConfigBundle = Static<typeof ConfigBundleSchema>;
 
 // Schemas describe normalized output. Input aliases make only defaulted fields
@@ -324,6 +343,7 @@ export type BundleSecretInput = ({
 export type ConfigBundleInput = Pick<ConfigBundle,
   'schema' | 'v' | 'created' | 'label' | 'src' | 'hint' | 'payload'> & {
   trust?: AcbTrustMode; capabilities?: string[]; pub?: BundlePublicInput;
+  sig?: BundleSignature;
 } & Record<string, unknown>;
 
 export interface SchemaValidationIssue {

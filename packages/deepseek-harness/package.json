@@ -34,7 +34,7 @@
     "@agentconfig/core": "^0.1.0"
   },
   "devDependencies": {
-    "@types/node": "^26.6.5",
+    "@types/node": "^26.6.6",
     "tsup": "^9.0.0",
     "typescript": "^7.0.2"
   }

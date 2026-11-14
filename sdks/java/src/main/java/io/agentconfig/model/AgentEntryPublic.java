@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -15,6 +16,8 @@ public class AgentEntryPublic {
     private String id;
     private String name;
     private String model;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
+    private String promptId;
     private List<String> skillIds = new ArrayList<>();
     private Map<String, Object> extra = new HashMap<>();
 
@@ -28,6 +31,9 @@ public class AgentEntryPublic {
 
     public String getModel() { return model; }
     public void setModel(String model) { this.model = model; }
+
+    public String getPromptId() { return promptId; }
+    public void setPromptId(String promptId) { this.promptId = promptId; }
 
     public List<String> getSkillIds() { return skillIds; }
     public void setSkillIds(List<String> skillIds) { this.skillIds = skillIds != null ? skillIds : new ArrayList<>(); }

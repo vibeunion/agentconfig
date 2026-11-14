@@ -218,6 +218,7 @@ class AgentEntryPublic:
     model: Optional[str] = None
     skillIds: List[str] = field(default_factory=list)
     extra: Dict[str, Any] = field(default_factory=dict)
+    promptId: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {"id": self.id, "skillIds": self.skillIds}
@@ -225,12 +226,14 @@ class AgentEntryPublic:
             d["name"] = self.name
         if self.model is not None:
             d["model"] = self.model
+        if self.promptId is not None:
+            d["promptId"] = self.promptId
         d.update(self.extra)
         return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> AgentEntryPublic:
-        known = {"id", "name", "model", "skillIds"}
+        known = {"id", "name", "model", "skillIds", "promptId"}
         extra = {k: v for k, v in data.items() if k not in known}
         return cls(
             id=data["id"],
@@ -238,6 +241,7 @@ class AgentEntryPublic:
             model=data.get("model"),
             skillIds=list(data.get("skillIds", [])),
             extra=extra,
+            promptId=data.get("promptId"),
         )
 
 
@@ -320,6 +324,7 @@ class OAuthCredential:
     clientId: Optional[str] = None
     redirectUri: Optional[str] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+    unknown_fields: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {"type": self.type}
@@ -344,15 +349,14 @@ class OAuthCredential:
         if self.redirectUri is not None:
             d["redirectUri"] = self.redirectUri
         d["extra"] = self.extra
+        d.update(self.unknown_fields)
         return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> OAuthCredential:
         known = {"type", "accessToken", "refreshToken", "idToken", "expired", "accountId", "email", "scope", "issuer", "clientId", "redirectUri", "extra"}
         extra = dict(data.get("extra", {}))
-        for k, v in data.items():
-            if k not in known:
-                extra[k] = v
+        unknown_fields = {k: v for k, v in data.items() if k not in known}
         return cls(
             type=data["type"],
             accessToken=data.get("accessToken"),
@@ -366,6 +370,7 @@ class OAuthCredential:
             clientId=data.get("clientId"),
             redirectUri=data.get("redirectUri"),
             extra=extra,
+            unknown_fields=unknown_fields,
         )
 
 
@@ -376,6 +381,7 @@ class ProviderSecret:
     headers: Dict[str, str] = field(default_factory=dict)
     oauth: Optional[OAuthCredential] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+    url: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -386,12 +392,14 @@ class ProviderSecret:
             d["apiKey"] = self.apiKey
         if self.oauth is not None:
             d["oauth"] = self.oauth.to_dict()
+        if self.url is not None:
+            d["url"] = self.url
         d.update(self.extra)
         return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> ProviderSecret:
-        known = {"apiKey", "env", "headers", "oauth"}
+        known = {"apiKey", "env", "headers", "oauth", "url"}
         extra = {k: v for k, v in data.items() if k not in known}
         oauth = OAuthCredential.from_dict(data["oauth"]) if "oauth" in data and isinstance(data["oauth"], dict) else None
         return cls(
@@ -400,6 +408,7 @@ class ProviderSecret:
             headers=dict(data.get("headers", {})),
             oauth=oauth,
             extra=extra,
+            url=data.get("url"),
         )
 
 

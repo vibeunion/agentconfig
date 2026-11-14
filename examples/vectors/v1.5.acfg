@@ -1,0 +1,93 @@
+{
+  "schema": "agentconfig-bundle",
+  "v": 1,
+  "created": 1794614400000,
+  "trust": "self",
+  "label": "Draft v1.5 SDK test vector",
+  "src": "spec",
+  "capabilities": [
+    "mcp",
+    "models",
+    "skills",
+    "prompts",
+    "agents",
+    "resources",
+    "future-cap"
+  ],
+  "payload": {
+    "alg": "PBKDF2-SHA256-AES-256-GCM",
+    "iterations": 100000,
+    "salt": "MDEyMzQ1Njc4OWFiY2RlZg==",
+    "iv": "MDEyMzQ1Njc4OWFi",
+    "ct": "RF/oCbZdKjIoBuRiCXFJBPZlPzqvMSObzG4Imj0l0m52qsRx6x5sc+TqTDn6ywIfUJiokHu9R5b/+52Mb3M3poRCNvm3w1drFxiQdd4LhbkWW9DtYBiM8Qib8yXVQuEfumAU4hSUdMq0QWZgXQE0lyx99FMZJFVYCaw/OPR7lD3n/mASds5ZWBYrglqUNhIcT1U5J6YfFvkfP3zD24W74n2xM89b7arwhM8aGEZgPRDyzq0c9cX/bmh+htpxiwguFpPY/aBdLXWqLLEh49YGCljH6FGam/i9FrEsy+4k24L77bqI6Cm7x30oWOQXy8nhyNoELACOzuZ2xSivn78ppM37PnDHxXWZLllzFWoKemfm4ETG9TmwLr/LcFtv0wS65kOnfqSb+15HNzP/rIa1VSP5Zff8xVmDNQnwiLH91/kuqs+JaNVWykcl2buv2Zi4zPtxo2mffwoaP2jEpsDUunY19jAqMF+dN7YdsLFhk/ox4yFYcUskyb1/KVX5nKA9i+yGk49MmusI4RPOkznwys2qrYJ5NS4a4uDoiTuRF7X/A6dyoDWfd72zI6qaMGHIy6ewbEhp76XEij+BQmTcMgnKJf9wXyxuBQzgunyo++j1hMhvbBRvrG2XUggPnaIikN90E7TYivtyA0UXwmJmCMbH5dUUAE6nS5n8eP9yqvZUggf6ARePTeRiAL64VU78WDNWFetMqo+ArnlyAelv+MByW3JuuxVSY5g=",
+    "x-payload": {
+      "retained": true
+    }
+  },
+  "pub": {
+    "mcp": [
+      {
+        "name": "remote",
+        "enabled": true,
+        "transport": "sse",
+        "x-mcp": {
+          "retained": true
+        }
+      }
+    ],
+    "models": [
+      {
+        "provider": "provider-a",
+        "id": "model-x",
+        "x-model": {
+          "retained": true
+        }
+      }
+    ],
+    "skills": [
+      {
+        "id": "pdf",
+        "enabled": true,
+        "x-skill": {
+          "retained": true
+        }
+      }
+    ],
+    "prompts": [
+      {
+        "id": "researcher-instructions",
+        "title": "Researcher",
+        "x-prompt": {
+          "retained": true
+        }
+      }
+    ],
+    "agents": [
+      {
+        "id": "researcher",
+        "model": "model-x",
+        "skillIds": [
+          "pdf"
+        ],
+        "promptId": "researcher-instructions",
+        "x-agent": {
+          "retained": true
+        }
+      }
+    ],
+    "resources": [
+      {
+        "uri": "file:///workspace/notes.md",
+        "x-resource": {
+          "retained": true
+        }
+      }
+    ],
+    "x-public": {
+      "retained": true
+    }
+  },
+  "x-envelope": {
+    "retained": true
+  }
+}

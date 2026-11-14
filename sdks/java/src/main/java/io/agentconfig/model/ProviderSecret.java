@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonAnySetter;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -11,6 +12,8 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class ProviderSecret {
     private String apiKey;
+    @JsonDeserialize(using = StrictStringDeserializer.class)
+    private String url;
     private Map<String, String> env = new HashMap<>();
     private Map<String, String> headers = new HashMap<>();
     private OAuthCredential oauth;
@@ -20,6 +23,9 @@ public class ProviderSecret {
 
     public String getApiKey() { return apiKey; }
     public void setApiKey(String apiKey) { this.apiKey = apiKey; }
+
+    public String getUrl() { return url; }
+    public void setUrl(String url) { this.url = url; }
 
     public Map<String, String> getEnv() { return env; }
     public void setEnv(Map<String, String> env) { this.env = env != null ? env : new HashMap<>(); }

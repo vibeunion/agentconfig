@@ -192,13 +192,31 @@ export const AgentEntryPublicSchema = openObject({
   name: optional(Type.String({ maxLength: 80 })),
   model: optional(Type.String({ maxLength: 128 })),
   skillIds: defaulted(Type.Array(Type.String({ minLength: 1, maxLength: 64 })), []),
+  /**
+   * `pub.prompts` id whose body in `customPrompts[<promptId>]` carries this
+   * agent's instructions. Omit when no instructions are carried.
+   */
+  promptId: optional(Type.String({ minLength: 1, maxLength: 64 })),
 });
 export const ResourceEntryPublicSchema = openObject({
   uri: Type.String({ minLength: 1, maxLength: 256 }),
   name: optional(Type.String({ maxLength: 80 })),
   mimeType: optional(Type.String({ maxLength: 128 })),
 });
-export const BundlePublicSchema = openObject({
+const bundlePublicIssues = (pub: {
+  prompts?: ReadonlyArray<{ id: string }>;
+  agents?: ReadonlyArray<{ id: string; promptId?: string }>;
+}): string[] => {
+  const promptIds = new Set((pub.prompts ?? []).map((prompt) => prompt.id));
+  const issues: string[] = [];
+  for (const agent of pub.agents ?? []) {
+    if (agent.promptId !== undefined && !promptIds.has(agent.promptId)) {
+      issues.push(`agent "${agent.id}" promptId "${agent.promptId}" does not match an entry in prompts`);
+    }
+  }
+  return issues;
+};
+const BundlePublicShape = openObject({
   mcp: defaulted(Type.Array(McpEntryPublicSchema), []),
   models: defaulted(Type.Array(ModelEntryPublicSchema), []),
   skills: defaulted(Type.Array(SkillEntryPublicSchema), []),
@@ -206,6 +224,11 @@ export const BundlePublicSchema = openObject({
   agents: defaulted(Type.Array(AgentEntryPublicSchema), []),
   resources: defaulted(Type.Array(ResourceEntryPublicSchema), []),
 }, { default: { mcp: [], models: [], skills: [], prompts: [], agents: [], resources: [] } });
+export const BundlePublicSchema = Type.Refine(
+  BundlePublicShape,
+  (pub) => bundlePublicIssues(pub).length === 0,
+  (pub) => bundlePublicIssues(pub).join('; '),
+);
 
 export const OAuthCredentialSchema = openObject({
   type: Type.String({ minLength: 1, maxLength: 32 }),
@@ -221,6 +244,11 @@ export const ProviderSecretSchema = openObject({
   env: defaulted(stringRecord(), {}),
   headers: defaulted(stringRecord(), {}),
   oauth: optional(OAuthCredentialSchema),
+  /**
+   * Endpoint for an `sse` / `http` MCP server, keyed by that server's `name`.
+   * Provider API base URLs stay in `endpoints`.
+   */
+  url: optional(urlString()),
 });
 export const BundleSecretSchema = openObject({
   endpoints: defaulted(stringRecord(), {}),
@@ -275,13 +303,14 @@ export type McpEntryPublicInput = DefaultInput<McpEntryPublic,
 export type ModelEntryPublicInput = ModelEntryPublic;
 export type SkillEntryPublicInput = DefaultInput<SkillEntryPublic, 'id' | 'order', 'enabled'>;
 export type PromptEntryPublicInput = PromptEntryPublic;
-export type AgentEntryPublicInput = DefaultInput<AgentEntryPublic, 'id' | 'name' | 'model', 'skillIds'>;
+export type AgentEntryPublicInput = DefaultInput<AgentEntryPublic, 'id' | 'name' | 'model', 'skillIds' | 'promptId'>;
 export type ResourceEntryPublicInput = ResourceEntryPublic;
 export type OAuthCredentialInput = DefaultInput<OAuthCredential,
   'type' | 'accessToken' | 'refreshToken' | 'idToken' | 'expired' | 'accountId' |
   'email' | 'scope' | 'issuer' | 'clientId' | 'redirectUri', 'extra'>;
 export type ProviderSecretInput = Pick<ProviderSecret, 'apiKey'> & {
   env?: Record<string, string>; headers?: Record<string, string>; oauth?: OAuthCredentialInput;
+  url?: string;
 } & Record<string, unknown>;
 export type BundlePublicInput = ({
   mcp?: McpEntryPublicInput[]; models?: ModelEntryPublicInput[];

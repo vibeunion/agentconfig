@@ -23,7 +23,11 @@ pub fn has_secrets(secret: Option<&BundleSecret>) -> bool {
     secret.map_or(false, |s| !s.secrets.is_empty())
 }
 
-pub fn assert_secret_policy(trust: &str, secret: Option<&BundleSecret>, encrypted: bool) -> Result<()> {
+pub fn assert_secret_policy(
+    trust: &str,
+    secret: Option<&BundleSecret>,
+    encrypted: bool,
+) -> Result<()> {
     if !has_secrets(secret) {
         return Ok(());
     }
@@ -63,6 +67,39 @@ pub fn derive_capabilities(pub_section: &BundlePublic) -> Vec<String> {
     caps
 }
 
+fn validate_agent_prompts(public: &BundlePublic) -> Result<()> {
+    let prompt_ids: std::collections::HashSet<&str> = public
+        .prompts
+        .iter()
+        .map(|prompt| prompt.id.as_str())
+        .collect();
+    for agent in &public.agents {
+        if let Some(prompt_id) = &agent.prompt_id {
+            if prompt_id.is_empty()
+                || prompt_id.chars().count() > 64
+                || !prompt_ids.contains(prompt_id.as_str())
+            {
+                return Err(AgentConfigError::ValidationError(format!(
+                    "Agent {} has an invalid or unresolved promptId",
+                    agent.id
+                )));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_remote_urls(secret: &BundleSecret) -> Result<()> {
+    for provider in secret.secrets.values() {
+        if let Some(endpoint) = &provider.url {
+            Url::parse(endpoint).map_err(|_| {
+                AgentConfigError::ValidationError("Invalid remote MCP URL".to_string())
+            })?;
+        }
+    }
+    Ok(())
+}
+
 pub fn validate_bundle(bundle: &ConfigBundle) -> Result<()> {
     if bundle.schema != ACB_SCHEMA_ID {
         return Err(AgentConfigError::InvalidSchema {
@@ -74,12 +111,13 @@ pub fn validate_bundle(bundle: &ConfigBundle) -> Result<()> {
         return Err(AgentConfigError::UnsupportedVersion(bundle.v));
     }
 
+    validate_agent_prompts(&bundle.pub_section)?;
+
     match bundle.payload.alg.as_str() {
         ALG_PBKDF2_SHA256_AES256_GCM => {
-            let iter = bundle
-                .payload
-                .iterations
-                .ok_or_else(|| AgentConfigError::ValidationError("Missing iterations".to_string()))?;
+            let iter = bundle.payload.iterations.ok_or_else(|| {
+                AgentConfigError::ValidationError("Missing iterations".to_string())
+            })?;
             let salt_str = bundle
                 .payload
                 .salt
@@ -118,6 +156,7 @@ pub fn validate_bundle(bundle: &ConfigBundle) -> Result<()> {
             let secret_str = String::from_utf8(raw_bytes)
                 .map_err(|e| AgentConfigError::ValidationError(format!("Invalid UTF-8: {e}")))?;
             let secret: BundleSecret = serde_json::from_str(&secret_str)?;
+            validate_remote_urls(&secret)?;
             assert_secret_policy(&bundle.trust, Some(&secret), false)?;
         }
         other => {
@@ -160,6 +199,7 @@ pub fn build_bundle(opts: BuildBundleOptions) -> Result<ConfigBundle> {
     }
 
     assert_secret_policy(&trust, Some(secret), encrypted)?;
+    validate_remote_urls(secret)?;
     let secret_json = serde_json::to_string(secret)?;
 
     let payload = if let Some(password) = &opts.password {
@@ -269,9 +309,8 @@ pub fn extract_bundle_from_deep_link(raw_url: &str, scheme: Option<&str>) -> Res
         ));
     }
 
-    let encoded = bundle_param.ok_or_else(|| {
-        AgentConfigError::ValidationError("Missing bundle parameter".to_string())
-    })?;
+    let encoded = bundle_param
+        .ok_or_else(|| AgentConfigError::ValidationError("Missing bundle parameter".to_string()))?;
     if encoded.len() > ACB_DEEP_LINK_MAX_BYTES {
         return Err(AgentConfigError::DeepLinkTooLong {
             len: encoded.len(),
@@ -336,6 +375,7 @@ pub fn reveal_secret(bundle: &ConfigBundle, password: Option<&str>) -> Result<Bu
     };
 
     let secret: BundleSecret = serde_json::from_str(&secret_json)?;
+    validate_remote_urls(&secret)?;
     assert_secret_policy(
         &bundle.trust,
         Some(&secret),

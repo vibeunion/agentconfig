@@ -14,11 +14,18 @@ fn test_canonical_integration_test_vector() {
 
     let secret = reveal_secret(&bundle, Some("test-vector-2026")).expect("failed to reveal");
     assert_eq!(
-        secret.secrets.get("provider-a").and_then(|s| s.api_key.as_deref()),
+        secret
+            .secrets
+            .get("provider-a")
+            .and_then(|s| s.api_key.as_deref()),
         Some("sk-test-key-abcdef")
     );
     assert_eq!(
-        secret.secrets.get("github").and_then(|s| s.env.get("GITHUB_PERSONAL_ACCESS_TOKEN")).map(|s| s.as_str()),
+        secret
+            .secrets
+            .get("github")
+            .and_then(|s| s.env.get("GITHUB_PERSONAL_ACCESS_TOKEN"))
+            .map(|s| s.as_str()),
         Some("ghp_testtoken123")
     );
     assert_eq!(
@@ -95,7 +102,10 @@ fn test_encrypted_self_bundle_roundtrip() {
     let revealed = reveal_secret(&parsed, Some("rust-secret-password")).expect("reveal");
 
     assert_eq!(
-        revealed.secrets.get("deepseek").and_then(|s| s.api_key.as_deref()),
+        revealed
+            .secrets
+            .get("deepseek")
+            .and_then(|s| s.api_key.as_deref()),
         Some("sk-deepseek-rust-key")
     );
 }

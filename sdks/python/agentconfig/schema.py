@@ -114,6 +114,7 @@ class ModelEntryPublic:
     provider: str
     id: str
     alias: Optional[str] = None
+    enabled: bool = True  # 省略即为开启，与 mcp/skills 的约定一致
     maxTokens: Optional[int] = None
     contextWindow: Optional[int] = None
     maxOutputTokens: Optional[int] = None
@@ -126,6 +127,8 @@ class ModelEntryPublic:
         d: Dict[str, Any] = {"provider": self.provider, "id": self.id}
         if self.alias is not None:
             d["alias"] = self.alias
+        if self.enabled is not True:
+            d["enabled"] = self.enabled
         if self.maxTokens is not None:
             d["maxTokens"] = self.maxTokens
         if self.contextWindow is not None:
@@ -145,12 +148,13 @@ class ModelEntryPublic:
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> ModelEntryPublic:
-        known = {"provider", "id", "alias", "maxTokens", "contextWindow", "maxOutputTokens", "modelType", "generationModes", "parameters"}
+        known = {"provider", "id", "alias", "enabled", "maxTokens", "contextWindow", "maxOutputTokens", "modelType", "generationModes", "parameters"}
         extra = {k: v for k, v in data.items() if k not in known}
         return cls(
             provider=data["provider"],
             id=data["id"],
             alias=data.get("alias"),
+            enabled=data.get("enabled", True),
             maxTokens=data.get("maxTokens"),
             contextWindow=data.get("contextWindow"),
             maxOutputTokens=data.get("maxOutputTokens"),
@@ -218,6 +222,7 @@ class AgentEntryPublic:
     model: Optional[str] = None
     skillIds: List[str] = field(default_factory=list)
     extra: Dict[str, Any] = field(default_factory=dict)
+    promptId: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {"id": self.id, "skillIds": self.skillIds}
@@ -225,12 +230,14 @@ class AgentEntryPublic:
             d["name"] = self.name
         if self.model is not None:
             d["model"] = self.model
+        if self.promptId is not None:
+            d["promptId"] = self.promptId
         d.update(self.extra)
         return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> AgentEntryPublic:
-        known = {"id", "name", "model", "skillIds"}
+        known = {"id", "name", "model", "skillIds", "promptId"}
         extra = {k: v for k, v in data.items() if k not in known}
         return cls(
             id=data["id"],
@@ -238,6 +245,7 @@ class AgentEntryPublic:
             model=data.get("model"),
             skillIds=list(data.get("skillIds", [])),
             extra=extra,
+            promptId=data.get("promptId"),
         )
 
 
@@ -320,6 +328,7 @@ class OAuthCredential:
     clientId: Optional[str] = None
     redirectUri: Optional[str] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+    unknown_fields: Dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {"type": self.type}
@@ -344,15 +353,14 @@ class OAuthCredential:
         if self.redirectUri is not None:
             d["redirectUri"] = self.redirectUri
         d["extra"] = self.extra
+        d.update(self.unknown_fields)
         return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> OAuthCredential:
         known = {"type", "accessToken", "refreshToken", "idToken", "expired", "accountId", "email", "scope", "issuer", "clientId", "redirectUri", "extra"}
         extra = dict(data.get("extra", {}))
-        for k, v in data.items():
-            if k not in known:
-                extra[k] = v
+        unknown_fields = {k: v for k, v in data.items() if k not in known}
         return cls(
             type=data["type"],
             accessToken=data.get("accessToken"),
@@ -366,6 +374,7 @@ class OAuthCredential:
             clientId=data.get("clientId"),
             redirectUri=data.get("redirectUri"),
             extra=extra,
+            unknown_fields=unknown_fields,
         )
 
 
@@ -376,6 +385,7 @@ class ProviderSecret:
     headers: Dict[str, str] = field(default_factory=dict)
     oauth: Optional[OAuthCredential] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+    url: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         d: Dict[str, Any] = {
@@ -386,12 +396,14 @@ class ProviderSecret:
             d["apiKey"] = self.apiKey
         if self.oauth is not None:
             d["oauth"] = self.oauth.to_dict()
+        if self.url is not None:
+            d["url"] = self.url
         d.update(self.extra)
         return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> ProviderSecret:
-        known = {"apiKey", "env", "headers", "oauth"}
+        known = {"apiKey", "env", "headers", "oauth", "url"}
         extra = {k: v for k, v in data.items() if k not in known}
         oauth = OAuthCredential.from_dict(data["oauth"]) if "oauth" in data and isinstance(data["oauth"], dict) else None
         return cls(
@@ -400,6 +412,7 @@ class ProviderSecret:
             headers=dict(data.get("headers", {})),
             oauth=oauth,
             extra=extra,
+            url=data.get("url"),
         )
 
 

@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"strconv"
 	"strings"
 	"time"
+	"unicode/utf8"
 )
 
 func utf8ByteLength(s string) int {
@@ -64,6 +66,41 @@ func DeriveCapabilities(pub BundlePublic) []string {
 	return caps
 }
 
+func validateAgentPrompts(public BundlePublic) error {
+	promptIDs := make(map[string]bool, len(public.Prompts))
+	for _, prompt := range public.Prompts {
+		promptIDs[prompt.ID] = true
+	}
+	for _, agent := range public.Agents {
+		if agent.PromptID != nil {
+			promptID := *agent.PromptID
+			if promptID == "" || utf8.RuneCountInString(promptID) > 64 || !promptIDs[promptID] {
+				return fmt.Errorf("agent %s has an invalid or unresolved promptId", agent.ID)
+			}
+		}
+	}
+	return nil
+}
+
+func validateRemoteURLs(secret *BundleSecret) error {
+	for _, provider := range secret.Secrets {
+		if provider.URL == nil {
+			continue
+		}
+		endpoint, err := url.Parse(*provider.URL)
+		if err != nil || !endpoint.IsAbs() || ((strings.EqualFold(endpoint.Scheme, "http") || strings.EqualFold(endpoint.Scheme, "https")) && endpoint.Hostname() == "") {
+			return errors.New("invalid remote MCP URL")
+		}
+		if endpoint.Port() != "" {
+			port, err := strconv.Atoi(endpoint.Port())
+			if err != nil || port < 0 || port > 65535 {
+				return errors.New("invalid remote MCP port")
+			}
+		}
+	}
+	return nil
+}
+
 func ValidateBundle(bundle *ConfigBundle) (*ConfigBundle, error) {
 	if bundle.Schema != SchemaID {
 		return nil, fmt.Errorf("invalid schema ID: expected \"%s\", got \"%s\"", SchemaID, bundle.Schema)
@@ -72,6 +109,9 @@ func ValidateBundle(bundle *ConfigBundle) (*ConfigBundle, error) {
 		return nil, fmt.Errorf("unsupported bundle version: %d", bundle.V)
 	}
 
+	if err := validateAgentPrompts(bundle.Pub); err != nil {
+		return nil, err
+	}
 	switch bundle.Payload.Alg {
 	case AlgorithmPbkdf2Sha256Aes256Gcm:
 		if bundle.Payload.Iterations == nil {
@@ -110,6 +150,9 @@ func ValidateBundle(bundle *ConfigBundle) (*ConfigBundle, error) {
 		var secret BundleSecret
 		if err := json.Unmarshal(rawBytes, &secret); err != nil {
 			return nil, fmt.Errorf("invalid secret JSON: %w", err)
+		}
+		if err := validateRemoteURLs(&secret); err != nil {
+			return nil, err
 		}
 		if err := AssertSecretPolicy(bundle.Trust, &secret, false); err != nil {
 			return nil, err
@@ -171,6 +214,9 @@ func BuildBundle(opts BuildBundleOptions) (*ConfigBundle, error) {
 		return nil, err
 	}
 
+	if err := validateRemoteURLs(secret); err != nil {
+		return nil, err
+	}
 	secretBytes, err := json.Marshal(secret)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize secret section: %w", err)
@@ -389,6 +435,9 @@ func RevealSecret(bundle *ConfigBundle, password ...string) (*BundleSecret, erro
 		return nil, fmt.Errorf("invalid secret JSON: %w", err)
 	}
 
+	if err := validateRemoteURLs(&secret); err != nil {
+		return nil, err
+	}
 	if err := AssertSecretPolicy(validated.Trust, &secret, validated.Payload.Alg == AlgorithmPbkdf2Sha256Aes256Gcm); err != nil {
 		return nil, err
 	}

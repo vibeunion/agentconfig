@@ -22,6 +22,7 @@ public class OAuthCredential {
     private String clientId;
     private String redirectUri;
     private Map<String, Object> extra = new HashMap<>();
+    private Map<String, Object> unknownFields = new HashMap<>();
 
     public OAuthCredential() {}
 
@@ -62,8 +63,8 @@ public class OAuthCredential {
     public void setExtra(Map<String, Object> extra) { this.extra = extra != null ? extra : new HashMap<>(); }
 
     @JsonAnyGetter
-    public Map<String, Object> any() { return extra; }
+    public Map<String, Object> any() { return unknownFields; }
 
     @JsonAnySetter
-    public void setAny(String key, Object value) { this.extra.put(key, value); }
+    public void setAny(String key, Object value) { this.unknownFields.put(key, value); }
 }

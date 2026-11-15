@@ -3,6 +3,8 @@ package io.agentconfig;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.agentconfig.model.*;
 import java.net.URI;
+import java.net.URL;
+import java.net.MalformedURLException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
@@ -50,6 +52,36 @@ public final class Codec {
         return caps;
     }
 
+    private static void validateAgentPrompts(BundlePublic pub) {
+        Set<String> promptIds = new HashSet<>();
+        for (PromptEntryPublic prompt : pub.getPrompts()) promptIds.add(prompt.getId());
+        for (AgentEntryPublic agent : pub.getAgents()) {
+            String promptId = agent.getPromptId();
+            if (promptId != null && (promptId.isEmpty()
+                    || promptId.codePointCount(0, promptId.length()) > 64 || !promptIds.contains(promptId))) {
+                throw new AgentConfigException("Agent " + agent.getId() + " has an invalid or unresolved promptId");
+            }
+        }
+    }
+
+    private static void validateRemoteUrls(BundleSecret secret) {
+        for (ProviderSecret provider : secret.getSecrets().values()) {
+            if (provider.getUrl() == null) continue;
+            try {
+                URI endpoint = URI.create(provider.getUrl());
+                if (!endpoint.isAbsolute()) throw new IllegalArgumentException("Expected absolute URL");
+                if ("http".equalsIgnoreCase(endpoint.getScheme()) || "https".equalsIgnoreCase(endpoint.getScheme())) {
+                    URL remote = endpoint.toURL();
+                    if (remote.getHost().isEmpty() || remote.getPort() < -1 || remote.getPort() > 65535) {
+                        throw new IllegalArgumentException("Invalid remote MCP host or port");
+                    }
+                }
+            } catch (IllegalArgumentException | MalformedURLException e) {
+                throw new AgentConfigException("Invalid remote MCP URL", e);
+            }
+        }
+    }
+
     public static ConfigBundle validateBundle(ConfigBundle bundle) {
         if (!Schema.SCHEMA_ID.equals(bundle.getSchema())) {
             throw new AgentConfigException("Invalid schema ID: expected \"" + Schema.SCHEMA_ID + "\", got \"" + bundle.getSchema() + "\"");
@@ -58,6 +90,7 @@ public final class Codec {
             throw new AgentConfigException("Unsupported bundle version: " + bundle.getV());
         }
 
+        validateAgentPrompts(bundle.getPub());
         EncryptionPayload payload = bundle.getPayload();
         if (payload == null) {
             throw new AgentConfigException("Missing payload section");
@@ -87,6 +120,7 @@ public final class Codec {
             try {
                 String secretJson = new String(rawBytes, StandardCharsets.UTF_8);
                 BundleSecret secret = MAPPER.readValue(secretJson, BundleSecret.class);
+                validateRemoteUrls(secret);
                 assertSecretPolicy(bundle.getTrust(), secret, false);
             } catch (Exception e) {
                 throw new AgentConfigException("Invalid plaintext secret payload: " + e.getMessage(), e);
@@ -122,6 +156,7 @@ public final class Codec {
         }
 
         assertSecretPolicy(trust, secret, encrypted);
+        validateRemoteUrls(secret);
 
         try {
             String secretJson = MAPPER.writeValueAsString(secret);
@@ -272,6 +307,7 @@ public final class Codec {
 
         try {
             BundleSecret secret = MAPPER.readValue(secretJson, BundleSecret.class);
+            validateRemoteUrls(secret);
             assertSecretPolicy(bundle.getTrust(), secret, Schema.ALG_PBKDF2_SHA256_AES256_GCM.equals(payload.getAlg()));
             return secret;
         } catch (AgentConfigException e) {

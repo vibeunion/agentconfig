@@ -1,0 +1,17 @@
+{
+  "valid": [
+    "https://mcp.example.com/sse",
+    "https://mcp_service.example.com/sse",
+    "https://例子.测试/sse",
+    "https://[::1]:65535/sse",
+    "HTTPS://mcp.example.com/sse"
+  ],
+  "invalid": [
+    "not a url",
+    "https://@/sse",
+    "https://mcp.example.com:99999/sse",
+    "https://mcp.example.com:65536/sse",
+    "https://mcp.example.com:bad/sse",
+    "https://bad host.example/sse"
+  ]
+}

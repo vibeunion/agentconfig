@@ -146,6 +146,12 @@ const ModelEntryShape = openObject({
   provider: Type.String({ minLength: 1, maxLength: 64 }),
   id: Type.String({ minLength: 1, maxLength: 128 }),
   alias: optional(Type.String({ maxLength: 64 })),
+  /**
+   * Whether the producing client had this model turned on. Mirrors
+   * `mcp[].enabled` and `skills[].enabled`: omitted means enabled, so a bundle
+   * that never modelled the flag keeps its old meaning.
+   */
+  enabled: defaulted(Type.Boolean(), true),
   /** Legacy maximum-token field retained for v1 compatibility. */
   maxTokens: optional(positiveInteger()),
   contextWindow: optional(positiveInteger()),
@@ -300,7 +306,7 @@ type DefaultInput<T, K extends keyof T, D extends keyof T> =
 export type McpEntryPublicInput = DefaultInput<McpEntryPublic,
   'name' | 'transport' | 'command' | 'registryId' | 'repoUrl' | 'description',
   'enabled' | 'args' | 'envKeys'>;
-export type ModelEntryPublicInput = ModelEntryPublic;
+export type ModelEntryPublicInput = DefaultInput<ModelEntryPublic, 'provider' | 'id', 'enabled'>;
 export type SkillEntryPublicInput = DefaultInput<SkillEntryPublic, 'id' | 'order', 'enabled'>;
 export type PromptEntryPublicInput = PromptEntryPublic;
 export type AgentEntryPublicInput = DefaultInput<AgentEntryPublic, 'id' | 'name' | 'model', 'skillIds' | 'promptId'>;

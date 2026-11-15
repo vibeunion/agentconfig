@@ -16,7 +16,10 @@ const envelope = { alg: 'none', ct: '' };
 describe('native TypeBox migration', () => {
   it('exports native schemas without parser-shaped compatibility methods', () => {
     expect('parse' in ModelEntryPublicSchema).toBe(false);
-    expect(Value.Check(ModelEntryPublicSchema, model)).toBe(true);
+    // `enabled` 是 defaulted 字段，和 mcp/skills 一样：Check 需要它存在，
+    // parseSchema 会先补默认值，所以老包仍然可用。
+    expect(Value.Check(ModelEntryPublicSchema, model)).toBe(false);
+    expect(Value.Check(ModelEntryPublicSchema, { ...model, enabled: true })).toBe(true);
     expect(Value.Check(ModelEntryPublicSchema, { ...model, contextWindow: '4096' })).toBe(false);
     expect(JSON.parse(JSON.stringify(ConfigBundleSchema))).toHaveProperty('allOf');
   });
@@ -59,12 +62,12 @@ describe('native TypeBox migration', () => {
     const first = parseSchema(BundlePublicSchema, input);
     const second = parseSchema(BundlePublicSchema, input);
     first.mcp[0].args.push('changed');
-    first.models.push(model);
+    first.models.push({ ...model, enabled: true });
     expect(input.mcp[0]).not.toHaveProperty('args');
     expect(second.mcp[0].args).toEqual([]);
     expect(second.models).toEqual([]);
     const empty = parseSchema(BundlePublicSchema, undefined);
-    empty.models.push(model);
+    empty.models.push({ ...model, enabled: true });
     expect(parseSchema(BundlePublicSchema, undefined).models).toEqual([]);
   });
 
